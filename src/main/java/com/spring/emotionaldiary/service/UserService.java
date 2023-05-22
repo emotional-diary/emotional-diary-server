@@ -1,58 +1,105 @@
 package com.spring.emotionaldiary.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spring.emotionaldiary.badword.BadWordFiltering;
-import com.spring.emotionaldiary.dto.SignupDto;
+import com.spring.emotionaldiary.dto.*;
+import com.spring.emotionaldiary.model.LoginType;
+import com.spring.emotionaldiary.model.Terms;
 import com.spring.emotionaldiary.model.UserTerms;
 import com.spring.emotionaldiary.model.Users;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
+import com.spring.emotionaldiary.repository.TermsRepository;
 import com.spring.emotionaldiary.repository.UserTermsRepository;
 import com.spring.emotionaldiary.repository.UsersRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.spring.emotionaldiary.utils.JwtUtil;
+import org.apache.catalina.User;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.Errors;
-import org.springframework.validation.FieldError;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
 
 @Service
 public class UserService {
 
+    @Value("${jwt.secret}")
+    private String secretKey;
+    private Long expiredMs = 1000*60*60l; //long타입 l 붙여줘야함, 1시(1000=1초 * 60 * 60)
     private final UsersRepository usersRepository;
+    private final TermsRepository termsRepository;
     private final UserTermsRepository userTermsRepository;
     BadWordFiltering badWordFiltering = new BadWordFiltering();
 
-    public UserService(UsersRepository usersRepository, UserTermsRepository userTermsRepository) {
+    public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository) {
         this.usersRepository = usersRepository;
+        this.termsRepository = termsRepository;
         this.userTermsRepository = userTermsRepository;
     }
 
-    public ResponseEntity signup(SignupDto signUp) {
+    @Transactional
+    public ResponseEntity signup(SignupDto signUp, HttpServletResponse response) {
+        final SignupRes signupRes = new SignupRes();
+
         // 데이터베이스 저장 중에 발생할 수 있는 에러를 처리
         try {
             // 해당 이메일 계정이 이미 존재하는지 확인
             if (usersRepository.existsByEmail(signUp.getEmail())) {
-                return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT, ResponseMessage.DUPLICATE_EMAIL),
+                Optional<Users> user = usersRepository.findByEmail(signUp.getEmail());
+                return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT,user.get().getLoginType() + "로 가입된 회원입니다."),
                         HttpStatus.CONFLICT);
             }
+            // 이름 비속어, 욕설 필터 에러
             if(badWordFiltering.blankCheck(signUp.getName())){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "비속어, 욕설은 사용 불가합니다."),
                         HttpStatus.BAD_REQUEST);
             }
             // Users 객체 생성 및 저장
             Users user = signUp.toUser();
-            Users savedUser = usersRepository.save(user);
+            Users signupUser = usersRepository.save(user);
+            System.out.println(TransactionSynchronizationManager.getCurrentTransactionName());
 
             // UserTerms 객체 생성 및 저장
-            // List<UserTerms> userTermsList = signUp.toUserTerms();
-            // userTermsList.forEach(userTerms -> userTerms.setUsers(savedUser));
-            // userTermsRepository.saveAll(userTermsList);
-            return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER), HttpStatus.CREATED);
+            List<UserTerms> userTermsList = new ArrayList<>();
+            for(TermsDto termDto : signUp.getTerms()){
+                UserTerms userTerm = new UserTerms();
+                userTerm.setUsers(signupUser);
+                Optional<Terms> terms = termsRepository.findById((long)termDto.getTermId());
+                // optional 확인 & 유효성 에러 처리
+                if (!terms.isPresent()) {
+                    return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, ResponseMessage.BAD_REQUEST_TERMS), HttpStatus.BAD_REQUEST);
+                }
+                // 필수 약관 동의 에러
+                if(terms.get().getIsRequired()==true && Boolean.parseBoolean(termDto.getIsAgree())==false){
+                    return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"필수 약관에 동의해주세요"),HttpStatus.BAD_REQUEST);
+                }
+                userTerm.setTerms(terms.get());
+                userTerm.setIsAgree(Boolean.parseBoolean(termDto.getIsAgree()));
+                userTermsList.add(userTerm);
+                System.out.println(userTermsList);
+            }
+
+            userTermsRepository.saveAll(userTermsList);
+            System.out.println(TransactionSynchronizationManager.getCurrentTransactionName());
+
+            //jwt 생성 - jwt에 userName 넣어서 생성
+            String jwt = JwtUtil.createJwt(signUp.getName(),secretKey,expiredMs,response);
+            signupRes.setAccessToken(jwt);
+            signupRes.setLoginType(LoginType.LOCAL);
+            return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,signupRes), HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
@@ -60,17 +107,143 @@ public class UserService {
         }
     }
 
+    @Transactional
+    public ResponseEntity login(LoginDto loginDto,HttpServletResponse response){
+        try{
+            //스프링시큐리티 BCryptPasswordEncoder 기본 round = 10으로 설정되어 있음
+            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+            //해당 이메일 존재하는지 DB에서 찾기
+            Optional<Users> user = usersRepository.findByEmail(loginDto.getEmail());
+            // 이메일 존재하지 않는경우도 에러처리
+            if(!user.isPresent()){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
+            }
 
-    /* 회원가입 시, 유효성 체크 */
-    @Transactional(readOnly = true)
-    public Map<String, String> validateHandling(Errors errors) {
-        Map<String, String> validatorResult = new HashMap<>();
-
-        /* 유효성 검사에 실패한 필드 목록을 받음 */
-        for (FieldError error : errors.getFieldErrors()) {
-            String validKeyName = String.format("valid_%s", error.getField());
-            validatorResult.put(validKeyName, error.getDefaultMessage());
+            if(!passwordEncoder.matches(loginDto.getPassword(),"$2a$10$U186MdtDcK8Uyxg9Z7GF/u50WFEOigkzsqHLFcI0k.aGXD4oKbbVy")){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
+            }
+            //jwt 생성 - userName도 넣어서 만듦
+            JwtUtil.createJwt(user.get().getName(),secretKey,expiredMs,response);
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,user.get().getLoginType()),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return validatorResult;
+    }
+
+    @Transactional
+    public String kakaoLoginService(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
+        // 1. "인가 코드"로 "액세스 토큰" 요청
+        String accessToken = getAccessToken(code);
+
+        // 2. 토큰으로 카카오 API 호출
+        SocialUserInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
+
+        // 3. 카카오ID로 회원가입 처리
+        Users kakaoUser = registerKakaoUserIfNeed(kakaoUserInfo);
+
+        //jwt 생성 - userName도 넣어서 만듦
+        String jwt = JwtUtil.createJwt(kakaoUser.getName(),secretKey,expiredMs,response);
+        return jwt;
+    }
+
+    //1. "인가 코드"로 "액세스 토큰" 요청
+    @Transactional
+    private @ResponseBody String getAccessToken(String code){
+        //post 방식으로 key-value 타입으로 데이터 요청(카카오톡쪽으로)
+        RestTemplate rt = new RestTemplate(); //http 요청 편하게 가능
+
+        //HttpHeader 오브젝트 생성
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-type","application/x-www-form-urlencoded;charset=utf-8");
+
+        MultiValueMap<String,String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type","authorization_code");
+        params.add("client_id","a884467c621014f084d7262d91ddd761");
+        params.add("redirect_uri","http://localhost:8000/auth/kakao/callback");
+        params.add("code",code);
+
+        // HttpHeader와 HttpBody를 하나의 오브젝트에 담기
+        // => 이유 : 밑의 exchange에 매개변수 값이 HttpEntity여서 한번에 담아줌
+        HttpEntity<MultiValueMap<String,String>> kakaoTokenRequest = new HttpEntity<>(params,headers); //위의 param과 header 값 가진 엔티티
+
+        //Http 요청하기 - Post 방식으로 - Response 변수의 응답 받음
+        ResponseEntity<String> response = rt.postForEntity(
+                "https://kauth.kakao.com/oauth/token",
+                kakaoTokenRequest,String.class
+        );
+
+        // HTTP 응답 (JSON) -> 액세스 토큰 파싱
+        try {
+            String responseBody = response.getBody();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            return jsonNode.get("access_token").asText();
+
+        } catch (JsonProcessingException e) {
+            // JsonProcessingException 처리
+            e.printStackTrace(); // 또는 예외 처리 방식에 맞게 처리
+            return null; // 예외 발생 시 기본값인 null 반환
+        } catch (Exception e) {
+            // 그 외의 예외 처리
+            e.printStackTrace(); // 또는 예외 처리 방식에 맞게 처리
+            return null; // 예외 발생 시 기본값인 null 반환
+        }
+    }
+
+    // 2. 토큰으로 카카오 API 호출
+    @Transactional
+    private SocialUserInfoDto getKakaoUserInfo(String accessToken) throws JsonProcessingException{
+        // HTTP Header 생성
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + accessToken);
+        headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
+
+        // HTTP 요청 보내기
+        HttpEntity<MultiValueMap<String, String>> kakaoUserInfoRequest = new HttpEntity<>(headers);
+        RestTemplate rt = new RestTemplate();
+        ResponseEntity<String> response = rt.exchange(
+                "https://kapi.kakao.com/v2/user/me",
+                HttpMethod.POST,
+                kakaoUserInfoRequest,
+                String.class
+        );
+
+        // responseBody에 있는 정보를 꺼냄
+        String responseBody = response.getBody();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+        String email = jsonNode.get("kakao_account").get("email").asText();
+        String name = jsonNode.get("properties")
+                .get("nickname").asText();
+
+        return new SocialUserInfoDto(email,name);
+    }
+
+    // 3. 카카오ID로 회원가입 처리
+    @Transactional
+    private Users registerKakaoUserIfNeed(SocialUserInfoDto kakaoUserInfo) {
+        // DB 에 중복된 email이 있는지 확인
+        String kakaoEmail = kakaoUserInfo.getEmail();
+        String name = kakaoUserInfo.getName();
+        Users kakaoUser = usersRepository.findByEmail(kakaoEmail)
+                .orElse(null);
+
+        if (kakaoUser == null) {
+            // 회원가입
+            // password: random UUID
+            String password = UUID.randomUUID().toString();
+//            String encodedPassword = passwordEncoder.encode(password);
+
+            // Users 객체 생성 및 저장
+            kakaoUser = new Users(kakaoEmail, null, name, null, null, LoginType.KAKAO);
+            usersRepository.save(kakaoUser);
+        } else if (kakaoUser.getLoginType() == LoginType.LOCAL) {
+            // 로컬 에러나게 나중에 처리
+            return kakaoUser;
+        }
+        return kakaoUser;
     }
 }

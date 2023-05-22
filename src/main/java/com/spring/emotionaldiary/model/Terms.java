@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import javax.validation.constraints.AssertTrue;
 import java.sql.Timestamp;
 
 @Data
@@ -16,19 +17,20 @@ public class Terms {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동 시퀀스
-    private Long term_id;
+    @Column(name = "term_id")
+    private Long termId;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private Boolean is_required;
+    @Column(name = "is_required",nullable = false)
+    private Boolean isRequired;
 
     @CreationTimestamp
-    @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private Timestamp created_at;
+    @Column(name = "created_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Timestamp createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
-    private Timestamp updated_at;
+    @Column(name = "updated_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Timestamp updatedAt;
 }

@@ -1,14 +1,13 @@
 package com.spring.emotionaldiary;
 
 import com.spring.emotionaldiary.badword.BadWordFiltering;
+import com.spring.emotionaldiary.repository.TermsRepository;
 import com.spring.emotionaldiary.service.EmailService;
-import com.spring.emotionaldiary.until.RedisUtil;
-import io.netty.handler.codec.MessageAggregationException;
+import com.spring.emotionaldiary.utils.RedisUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.thymeleaf.standard.expression.MessageExpression;
 
 @SpringBootTest
 class EmailServiceTest {
@@ -17,6 +16,9 @@ class EmailServiceTest {
     private EmailService emailService;
     @Autowired
     private RedisUtil redisUtil;
+    @Autowired
+    private TermsRepository termsRepository;
+
 
     @Test
     void BadWordFilteringTest(){
@@ -24,10 +26,10 @@ class EmailServiceTest {
         String bad2 = "ㅅㅂ";
         BadWordFiltering badWordFiltering = new BadWordFiltering();
 
-        boolean bool1 = badWordFiltering.check(bad1); 		//욕    설
-        boolean bool2 = badWordFiltering.blankCheck(bad1);	//욕    설
-        boolean bool3 = badWordFiltering.check(bad2);		//욕설
-        boolean bool4 = badWordFiltering.blankCheck(bad2);	//욕설
+        boolean bool1 = badWordFiltering.check(bad1);         //욕    설
+        boolean bool2 = badWordFiltering.blankCheck(bad1);    //욕    설
+        boolean bool3 = badWordFiltering.check(bad2);        //욕설
+        boolean bool4 = badWordFiltering.blankCheck(bad2);    //욕설
         System.out.println(bool1);
         System.out.println(bool2);
         System.out.println(bool3);
@@ -57,5 +59,12 @@ class EmailServiceTest {
         System.out.println(redisUtil.getData(email));
 //        Assertions.assertFalse(redisUtil.existData("test1@test.com"));
 //        Assertions.assertEquals(redisUtil.getData(email), "aaa111");
+    }
+
+    @Test
+    public void termsTest(){
+        if (termsRepository.findById((long)1).isPresent()) {
+            System.out.println(termsRepository.findById((long)1).get());
+        };
     }
 }

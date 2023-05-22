@@ -4,6 +4,7 @@ import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.Length;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
@@ -19,38 +20,49 @@ import java.sql.Timestamp;
 public class Users {
     @Id // 해당 변수가 primary key로 사용할 수 있는 식별자의 역할을 할 수 있도록 하는 어노테이션
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동 시퀀스
-    private Long user_id;
+    @Column(name = "user_id")
+    private Long userId;
 
     @NotBlank(message = "이메일을 입력해주세요")
+    @Length(min = 6,max = 254,message = "이메일의 길이는 6~254자압니다")
     @Email(message = "이메일 형식이 올바르지 않습니다")
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true,length = 254)
     private String email;
 
-    @NotBlank(message = "비밀번호를 입력해주세요")
-    @Pattern(regexp = "(?=.*[0-9])(?=.*[a-zA-Z]).{8,16}", message = "최소 하나의 문자 및 숫자를 포함한 8~16자이여야 합니다")
-    @Column(nullable = false, length = 128)
-    private String pwd;
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,128}$", message = "최소 하나의 문자 및 숫자,특수문자를 포함한 8~128자이여야 합니다")
+    @Column(length = 128)
+    private String password;
 
     @NotBlank(message = "이름을 입력해주세요")
-    @Pattern(regexp = "^[ㄱ-ㅎ가-힣a-z]{2,16}$", message = "숫자 또는 특수문자를 제외한 2자이상 입력해주세요")
-    @Column(nullable = false)
+    @Pattern(regexp = "^[가-힣a-z0-9]{2,16}$", message = "숫자, 특수문자, 이모지, 공백, 자음, 모음을 제외한 2~16자를 입력해주세요")
+    @Column(nullable = false, length = 16)
     private String name;
 
+    @Length(min = 8,max = 8,message = "생년월일 8자리를 입력해주세요")
     private String birth;
 
     @Enumerated(EnumType.STRING)
     private GenderType gender;
 
-    @Column(nullable = false)
+    @Column(name = "login_type",nullable = false)
     @ColumnDefault("'LOCAL'")
     @Enumerated(EnumType.STRING)
-    private LoginType login_type;
+    private LoginType loginType;
 
     @CreationTimestamp
-    @Column(nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private Timestamp created_at;
+    @Column(name = "created_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Timestamp createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
-    private Timestamp updated_at;
+    @Column(name = "updated_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private Timestamp updatedAt;
+
+    public Users(String email, String password, String name, String birth, GenderType gender, LoginType loginType) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.birth = birth;
+        this.gender = gender;
+        this.loginType = loginType;
+    }
 }
