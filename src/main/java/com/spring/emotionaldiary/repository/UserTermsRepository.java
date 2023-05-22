@@ -10,6 +10,5 @@ import java.util.List;
 @Transactional(readOnly = true)
 @Repository
 public interface UserTermsRepository extends JpaRepository<UserTerms,Long> {
-    @Override
-    <S extends UserTerms> List<S> saveAll(Iterable<S> entities);
+
 }

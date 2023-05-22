@@ -1,33 +1,57 @@
 package com.spring.emotionaldiary.controller;
 
+import com.spring.emotionaldiary.model.Users;
 import com.spring.emotionaldiary.model.response.DefaultRes;
-import com.spring.emotionaldiary.dto.EmailCodeReq;
+import com.spring.emotionaldiary.dto.EmailAuthenticationDto;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
+import com.spring.emotionaldiary.repository.UsersRepository;
 import com.spring.emotionaldiary.service.EmailService;
+import com.spring.emotionaldiary.service.UserService;
+import com.spring.emotionaldiary.utils.ValidateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.NoSuchAlgorithmException;
+import javax.validation.Valid;
+import java.util.Map;
 
+@RequestMapping("/api/v1/users/email-validation")
 @RestController
 public class EmailController {
     @Autowired
     private EmailService emailService;
 
-    @PostMapping("check-email")
-    public ResponseEntity sendEmailPath(@RequestBody EmailCodeReq emailCodeReq) throws Exception {
-        emailService.sendEmailMessage(emailCodeReq.getEmail());
-        return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.SEND_EMAIL_AUTHENTICATION_CODE), HttpStatus.OK);
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private ValidateUtil validateUtil;
+
+    @PostMapping
+    public ResponseEntity sendEmailPath(@Valid @RequestBody EmailAuthenticationDto emailCodeReq, Errors errors) throws Exception {
+        try{
+            if(errors.hasErrors()){
+                /* 유효성 통과 못한 필드와 메시지를 핸들링 */
+                Map<String, String> validatorResult = validateUtil.validateHandling(errors);
+                for (String key : validatorResult.keySet()) {
+                    System.out.println(key);
+                    System.out.println(validatorResult.get(key));
+                    return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,key+" : "+validatorResult.get(key)),HttpStatus.BAD_REQUEST);
+                }
+            }
+            return emailService.sendEmailMessage(emailCodeReq.getEmail());
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    @PostMapping("/check-email/code")
-    public ResponseEntity sendEmailAndCode(@RequestBody EmailCodeReq emailCodeReq) throws Exception {
+    @GetMapping
+    public ResponseEntity sendEmailAndCode(@Valid @RequestBody EmailAuthenticationDto emailCodeReq) throws Exception {
         if (emailService.getUserIdByEmail(emailCodeReq.getEmail(),emailCodeReq.getCode())) {
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일 인증 성공"),HttpStatus.OK);
         }
-        return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"실패"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"잘못된 인증코드 입니다."),HttpStatus.BAD_REQUEST);
     }
 }

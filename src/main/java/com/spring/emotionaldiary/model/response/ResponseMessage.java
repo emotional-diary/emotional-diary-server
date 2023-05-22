@@ -2,6 +2,7 @@ package com.spring.emotionaldiary.model.response;
 
 public class ResponseMessage {
     public static final String CREATED_USER = "회원 가입 성공";
+    public static final String BAD_REQUEST_TERMS = "회원약관 요청 에러";
     public static final String DUPLICATE_EMAIL = "이메일 중복 에러";
     public static final String VALIDATION_ERROR = "이메일 유효성 에러";
     public static final String SEND_EMAIL_AUTHENTICATION_CODE = "이메일 인증코드 전송 성공";

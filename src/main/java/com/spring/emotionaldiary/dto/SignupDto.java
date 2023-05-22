@@ -4,7 +4,9 @@ import com.spring.emotionaldiary.model.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 
+import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
@@ -17,59 +19,43 @@ import java.util.List;
 public class SignupDto {
 
     @NotBlank(message = "이메일을 입력해주세요")
+    @Length(min = 6,max = 254,message = "이메일의 길이는 6~254자압니다")
     @Email(message = "이메일 형식이 올바르지 않습니다")
     private String email;
 
-    @NotBlank(message = "비밀번호를 입력해주세요")
-    @Pattern(regexp = "(?=.*[0-9])(?=.*[a-zA-Z]).{8,16}", message = "최소 하나의 문자 및 숫자를 포함한 8~16자이여야 합니다")
-    private String pwd;
+    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,128}$", message = "최소 하나의 문자 및 숫자,특수문자를 포함한 8~128자이여야 합니다")
+    private String password;
 
     @NotBlank(message = "이름을 입력해주세요")
-    @Pattern(regexp = "^[ㄱ-ㅎ가-힣a-z]{2,16}$", message = "숫자 또는 특수문자를 제외한 2자이상 입력해주세요")
+    @Pattern(regexp = "^[가-힣a-z0-9]{2,16}$", message = "숫자, 특수문자, 이모지, 공백, 자음, 모음을 제외한 2~16자를 입력해주세요")
     private String name;
 
+    @Length(min = 8,max = 8,message = "생년월일 8자리를 입력해주세요")
     private String birth;
+
     private GenderType gender;
     private LoginType loginType;
-    private Timestamp created_at;
-    private Timestamp updated_at;
 
-    private List<Long> termIds;
-    private boolean isAgree;
+    private List<TermsDto> terms;
 
     @Builder
-    public SignupDto(String email, String pwd, String name, String birth, GenderType gender) {
+    public SignupDto(String email, String password, String name, String birth, GenderType gender,List<TermsDto> terms) {
         this.email = email;
-        this.pwd = pwd;
+        this.password = password;
         this.name = name;
         this.birth = birth;
         this.gender = gender;
+        this.terms = terms;
     }
 
     public Users toUser(){
         return Users.builder()
                 .email(email)
-                .pwd(pwd)
+                .password(password)
                 .name(name)
                 .birth(birth)
                 .gender(gender)
-                .login_type(LoginType.LOCAL)
+                .loginType(LoginType.LOCAL)
                 .build();
     }
-
-    // toUserTerms 메서드에서는 List<UserTerms>를 반환하도록 수정하고, termIds를 반복문으로 돌면서
-    // 각각의 약관에 대한 UserTerms 객체를 생성하고, 생성된 UserTerms객체를 userTermsList에 추가하도록 수정
-    // 이렇게 하면 SignupDto 객체를 통해 여러 개의 약관에 대한 UserTerms 객체를 생성할 수 있음
-//    public List<UserTerms> toUserTerms(){
-//        List<UserTerms> userTermsList = new ArrayList<>();
-//        for (Long termId : termIds) {
-//            UserTerms userTerms = UserTerms.builder()
-//                    .users(toUser())
-//                    .terms(Terms.builder().term_id(termId).build())
-//                    .isAgree(isAgree)
-//                    .build();
-//            userTermsList.add(userTerms);
-//        }
-//        return userTermsList;
-//    }
 }
