@@ -48,19 +48,7 @@ public class JwtUtil {
                 .compact();
 
         //Http Header에 jwt 등록
-        // response.setHeader("Authorization", "Bearer " + jwt);
-
-        //jwt를 쿠키에 저장
-        ResponseCookie cookie = ResponseCookie.from("jwt",jwt)
-                .maxAge(7 * 24 * 60 * 60)
-                .path("/")
-                .secure(true)
-                .sameSite("None")
-                .httpOnly(true)
-                .build();
-        //http Header에 쿠키 저장
-        response.setHeader("Set-Cookie", cookie.toString());
-
-        return cookie.toString();
+        response.setHeader("Authorization", "Bearer " + jwt);
+        return jwt;
     }
 }

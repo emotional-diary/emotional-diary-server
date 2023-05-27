@@ -36,10 +36,10 @@ public class JwtFilter extends OncePerRequestFilter { //안보내는 요청에�
         final String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
         log.info("authorization: {}",authorization);
 
-//        if ("/api/v1/users".equals(request.getRequestURI()) || "/api/v1/users/login".equals(request.getRequestURI())) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
+        if ("/api/v1/users".equals(request.getRequestURI()) || "/api/v1/users/login".equals(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         //토큰 안보내면 blcok
         //권한 처리하기 전에 토큰 없을경우 에러 처리
         if(authorization==null || !authorization.startsWith("Bearer ")){

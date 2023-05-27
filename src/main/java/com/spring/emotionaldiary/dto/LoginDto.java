@@ -16,6 +16,5 @@ public class  LoginDto {
     private String email;
 
     @NotBlank(message = "비밀번호를 입력해주세요")
-//    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,128}$", message = "최소 하나의 문자 및 숫자,특수문자를 포함한 8~128자이여야 합니다")
     private String password;
 }
