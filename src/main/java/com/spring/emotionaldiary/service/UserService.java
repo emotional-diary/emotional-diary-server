@@ -44,6 +44,9 @@ public class UserService {
     private final UserTermsRepository userTermsRepository;
     BadWordFiltering badWordFiltering = new BadWordFiltering();
 
+    //스프링시큐리티 BCryptPasswordEncoder 기본 round = 10으로 설정되어 있음
+    BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository) {
         this.usersRepository = usersRepository;
         this.termsRepository = termsRepository;
@@ -56,12 +59,6 @@ public class UserService {
 
         // 데이터베이스 저장 중에 발생할 수 있는 에러를 처리
         try {
-            // 해당 이메일 계정이 이미 존재하는지 확인
-            if (usersRepository.existsByEmail(signUp.getEmail())) {
-                Optional<Users> user = usersRepository.findByEmail(signUp.getEmail());
-                return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT,user.get().getLoginType() + "로 가입된 회원입니다."),
-                        HttpStatus.CONFLICT);
-            }
             // 이름 비속어, 욕설 필터 에러
             if(badWordFiltering.blankCheck(signUp.getName())){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "비속어, 욕설은 사용 불가합니다."),
@@ -97,7 +94,6 @@ public class UserService {
 
             //jwt 생성 - jwt에 userName 넣어서 생성
             String jwt = JwtUtil.createJwt(signUp.getName(),secretKey,expiredMs,response);
-            signupRes.setAccessToken(jwt);
             signupRes.setLoginType(LoginType.LOCAL);
             return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,signupRes), HttpStatus.CREATED);
         } catch (Exception e) {
@@ -109,9 +105,8 @@ public class UserService {
 
     @Transactional
     public ResponseEntity login(LoginDto loginDto,HttpServletResponse response){
+        final SignupRes signinRes = new SignupRes();
         try{
-            //스프링시큐리티 BCryptPasswordEncoder 기본 round = 10으로 설정되어 있음
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
             //해당 이메일 존재하는지 DB에서 찾기
             Optional<Users> user = usersRepository.findByEmail(loginDto.getEmail());
             // 이메일 존재하지 않는경우도 에러처리
@@ -119,12 +114,36 @@ public class UserService {
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
             }
 
-            if(!passwordEncoder.matches(loginDto.getPassword(),"$2a$10$U186MdtDcK8Uyxg9Z7GF/u50WFEOigkzsqHLFcI0k.aGXD4oKbbVy")){
+            // 암호화된 password 동일한지 비교
+            if(!passwordEncoder.matches(loginDto.getPassword(),user.get().getPassword())){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
             }
             //jwt 생성 - userName도 넣어서 만듦
             JwtUtil.createJwt(user.get().getName(),secretKey,expiredMs,response);
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,user.get().getLoginType()),HttpStatus.OK);
+            signinRes.setLoginType(user.get().getLoginType());
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,signinRes),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Transactional
+    public ResponseEntity findPwd(findPasswordDto findPasswordDto){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(findPasswordDto.getEmail());
+            // 이메일 존재하지 않는경우 에러처리
+            if(!user.isPresent()){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"해당 유저가 존재하지 않습니다."),HttpStatus.BAD_REQUEST);
+            }
+            // 1. 새로운 비밀번호(bcrypt 암호화)가 이전의 비밀번호와 일치하지 않는지 확인
+            if(passwordEncoder.matches(findPasswordDto.getNewPassword(),user.get().getPassword())){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전의 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
+            }
+            // 2. 새로운 비밀번호 저장
+            user.get().setPassword(findPasswordDto.getNewPassword());
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.FIND_PASSWORD),HttpStatus.OK);
         }catch(Exception e){
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),

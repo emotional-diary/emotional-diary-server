@@ -23,7 +23,6 @@ public class SignupDto {
     @Email(message = "이메일 형식이 올바르지 않습니다")
     private String email;
 
-    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,128}$", message = "최소 하나의 문자 및 숫자,특수문자를 포함한 8~128자이여야 합니다")
     private String password;
 
     @NotBlank(message = "이름을 입력해주세요")

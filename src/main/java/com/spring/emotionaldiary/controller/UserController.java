@@ -3,9 +3,7 @@ package com.spring.emotionaldiary.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.spring.emotionaldiary.dto.LoginDto;
 import com.spring.emotionaldiary.dto.SignupDto;
-import com.spring.emotionaldiary.dto.SignupRes;
-import com.spring.emotionaldiary.dto.SocialUserInfoDto;
-import com.spring.emotionaldiary.model.Users;
+import com.spring.emotionaldiary.dto.findPasswordDto;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
@@ -15,11 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -55,10 +50,19 @@ public class UserController {
         }
     }
 
-    @PostMapping("/api/v1/users/login")
+    @PostMapping("/api/v1/users/login/local")
     public ResponseEntity login(@RequestBody LoginDto loginDto,HttpServletResponse response){
         try{
             return userService.login(loginDto,response);
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PatchMapping("/api/v1/users/find-pwd")
+    public ResponseEntity findPwd(@RequestBody findPasswordDto findPasswordDto){
+        try{
+            return userService.findPwd(findPasswordDto);
         }catch(Exception e){
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }

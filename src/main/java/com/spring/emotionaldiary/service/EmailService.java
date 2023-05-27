@@ -17,6 +17,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring5.SpringTemplateEngine;
 
 import javax.mail.internet.MimeMessage;
+import java.util.Optional;
 import java.util.Random;
 
 @Slf4j
@@ -72,13 +73,17 @@ public class EmailService {
         // message.setFrom(new InternetAddress([이메일 계정], [설정할 이름]));
     }
 
+    public ResponseEntity emailDuplicationCheck(String email) throws Exception{
+         // 해당 이메일 계정이 이미 존재하는지 확인
+        if (usersRepository.existsByEmail(email)) {
+            Optional<Users> user = usersRepository.findByEmail(email);
+            return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT,ResponseMessage.DUPLICATE_EMAIL,user.get().getLoginType() + "로 가입된 회원입니다."),
+                        HttpStatus.CONFLICT);
+        }
+        return new ResponseEntity(DefaultRes.res(StatusCode.OK, "이메일 중복 체크 성공"), HttpStatus.OK);
+    }
+
     public ResponseEntity sendEmailMessage(String email) throws Exception {
-        // 해당 이메일 계정이 이미 존재하는지 확인
-//        if (usersRepository.existsByEmail(email)) {
-//            Users user = usersRepository.findByEmail(email);
-//            return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT,user.getLoginType() + "로 가입된 회원입니다."),
-//                    HttpStatus.CONFLICT);
-//        }
         //해당 이메일이 Redis에 저장되어 있을 시, 삭제하고 등록
         if (redisUtil.existData(email)) {
             redisUtil.deleteData(email);

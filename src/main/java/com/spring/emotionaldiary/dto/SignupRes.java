@@ -11,5 +11,4 @@ import javax.persistence.Column;
 @RequiredArgsConstructor
 public class SignupRes {
     private LoginType loginType;
-    private String accessToken;
 }

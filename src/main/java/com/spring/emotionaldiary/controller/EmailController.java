@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.Map;
 
-@RequestMapping("/api/v1/users/email-validation")
+@RequestMapping("/api/v1/users")
 @RestController
 public class EmailController {
     @Autowired
@@ -29,7 +29,16 @@ public class EmailController {
     @Autowired
     private ValidateUtil validateUtil;
 
-    @PostMapping
+    @PostMapping("/email")
+    public ResponseEntity emailDuplicateCheck(@RequestBody EmailAuthenticationDto emailCodeReq) throws Exception{
+        try{
+            return emailService.emailDuplicationCheck(emailCodeReq.getEmail());
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/email-validation")
     public ResponseEntity sendEmailPath(@Valid @RequestBody EmailAuthenticationDto emailCodeReq, Errors errors) throws Exception {
         try{
             if(errors.hasErrors()){
@@ -47,7 +56,7 @@ public class EmailController {
         }
     }
 
-    @GetMapping
+    @GetMapping("/email-validation")
     public ResponseEntity sendEmailAndCode(@Valid @RequestBody EmailAuthenticationDto emailCodeReq) throws Exception {
         if (emailService.getUserIdByEmail(emailCodeReq.getEmail(),emailCodeReq.getCode())) {
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일 인증 성공"),HttpStatus.OK);
