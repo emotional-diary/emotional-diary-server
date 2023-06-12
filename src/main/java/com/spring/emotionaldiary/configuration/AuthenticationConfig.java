@@ -27,7 +27,7 @@ public class AuthenticationConfig {
                 .csrf().disable() //프론트엔드가 분리된 환경을 가정
                 .cors().and()
                 .authorizeRequests()
-                .antMatchers("/api/v1/users","/api/v1/users/login/**","/api/v1/users/email-validation","/auth/kakao/callback","/api/v1/users/email","/api/v1/users/find-pwd").permitAll() //접근 허용하는 url
+                .antMatchers("/api/v1/users/signup","/api/v1/users/login/**","/api/v1/users/email-validation","/auth/kakao/callback","/api/v1/users/email","/api/v1/users/find-pwd").permitAll() //접근 허용하는 url
                 .anyRequest().authenticated() //나머지는 다 인증처리 필요
                 .and()
                 .sessionManagement()

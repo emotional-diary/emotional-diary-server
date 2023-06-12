@@ -30,9 +30,9 @@ public class EmailController {
     private ValidateUtil validateUtil;
 
     @PostMapping("/email")
-    public ResponseEntity emailDuplicateCheck(@RequestBody EmailAuthenticationDto emailCodeReq) throws Exception{
+    public ResponseEntity findByEmail(@RequestBody EmailAuthenticationDto emailCodeReq) throws Exception{
         try{
-            return emailService.emailDuplicationCheck(emailCodeReq.getEmail());
+            return emailService.findByEmail(emailCodeReq.getEmail());
         }catch(Exception e){
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }
