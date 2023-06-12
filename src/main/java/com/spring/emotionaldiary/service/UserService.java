@@ -1,7 +1,6 @@
 package com.spring.emotionaldiary.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spring.emotionaldiary.badword.BadWordFiltering;
@@ -17,10 +16,8 @@ import com.spring.emotionaldiary.repository.TermsRepository;
 import com.spring.emotionaldiary.repository.UserTermsRepository;
 import com.spring.emotionaldiary.repository.UsersRepository;
 import com.spring.emotionaldiary.utils.JwtUtil;
-import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,8 +89,8 @@ public class UserService {
             userTermsRepository.saveAll(userTermsList);
             System.out.println(TransactionSynchronizationManager.getCurrentTransactionName());
 
-            //jwt 생성 - jwt에 userName 넣어서 생성
-            String jwt = JwtUtil.createJwt(signUp.getName(),secretKey,expiredMs,response);
+            //jwt 생성 - jwt에 userName,userID 넣어서 생성
+            String jwt = JwtUtil.createJwt(signupUser,secretKey,expiredMs,response);
             signupRes.setLoginType(LoginType.LOCAL);
             return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,signupRes), HttpStatus.CREATED);
         } catch (Exception e) {
@@ -118,8 +115,8 @@ public class UserService {
             if(!passwordEncoder.matches(loginDto.getPassword(),user.get().getPassword())){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
             }
-            //jwt 생성 - userName도 넣어서 만듦
-            JwtUtil.createJwt(user.get().getName(),secretKey,expiredMs,response);
+            //jwt 생성 - user도 넣어서 만듦
+            JwtUtil.createJwt(user.get(),secretKey,expiredMs,response);
             signinRes.setLoginType(user.get().getLoginType());
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,signinRes),HttpStatus.OK);
         }catch(Exception e){
@@ -130,19 +127,27 @@ public class UserService {
     }
 
     @Transactional
-    public ResponseEntity findPwd(findPasswordDto findPasswordDto){
+    public ResponseEntity findPwd(PasswordDto PasswordDto){
         try{
-            Optional<Users> user = usersRepository.findByEmail(findPasswordDto.getEmail());
+            Optional<Users> user = usersRepository.findByEmail(PasswordDto.getEmail());
             // 이메일 존재하지 않는경우 에러처리
             if(!user.isPresent()){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"해당 유저가 존재하지 않습니다."),HttpStatus.BAD_REQUEST);
             }
             // 1. 새로운 비밀번호(bcrypt 암호화)가 이전의 비밀번호와 일치하지 않는지 확인
-            if(passwordEncoder.matches(findPasswordDto.getNewPassword(),user.get().getPassword())){
+            DefaultRes<Boolean> responseBody = (DefaultRes<Boolean>) verifyPwd(user.get().getEmail(),PasswordDto.getNewPassword()).getBody();
+            Boolean data = responseBody.getData();
+//            if(passwordEncoder.matches(PasswordDto.getNewPassword(),user.get().getPassword())){
+//                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전의 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
+//            }
+            if(data){
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전의 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
             }
             // 2. 새로운 비밀번호 저장
-            user.get().setPassword(findPasswordDto.getNewPassword());
+            // Spring Data Jpa 는 기본적으로 JPA 영속성 컨텍스트 유지를 제공한다.
+            // 이 상태에서 해당 데이터의 값을 변경하면 자동으로 변경사항이 DB에 반영한다.
+            // 즉, 별도로 Update 쿼리를 날리지 않아도, 데이터만 변경하면 알아서 변경
+            user.get().setPassword(passwordEncoder.encode(PasswordDto.getNewPassword()));
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.FIND_PASSWORD),HttpStatus.OK);
         }catch(Exception e){
             e.printStackTrace();
@@ -151,6 +156,113 @@ public class UserService {
         }
     }
 
+    // 회원정보 조회
+    @Transactional
+    public ResponseEntity readUser(String userEmail){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(userEmail);
+            if(!user.isPresent()){
+                return new ResponseEntity(DefaultRes.res(StatusCode.UNAUTHORIZED, ResponseMessage.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
+            }
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.READ_USER,user),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 회원정보 수정
+    @Transactional
+    public ResponseEntity updateUser(String userEmail,updateUserDto updateUserDto){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(userEmail);
+            if(!user.isPresent()){
+                return new ResponseEntity(DefaultRes.res(StatusCode.UNAUTHORIZED, ResponseMessage.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
+            }
+            if(updateUserDto.getName() == ""){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이름을 입력해주세요"),HttpStatus.BAD_REQUEST);
+            }
+            System.out.println(updateUserDto);
+            user.get().setName(updateUserDto.getName());
+            user.get().setBirth(updateUserDto.getBirth());
+            user.get().setGender(updateUserDto.getGender());
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.UPDATE_USER),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 비밀번호 변경
+    @Transactional
+    public ResponseEntity changePwd(String userEmail, String newPassword){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(userEmail);
+            // 이메일 존재하지 않는경우 에러처리
+            if(!user.isPresent()) {
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "해당 유저가 존재하지 않습니다."), HttpStatus.BAD_REQUEST);
+            }
+            // 1. 입력한 새로운 비밀번호가 이전의 비밀번호와 일치하지 않는지 확인
+            DefaultRes<Boolean> responseBody = (DefaultRes<Boolean>) verifyPwd(userEmail,newPassword).getBody();
+            Boolean data = responseBody.getData();
+            if(data){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전의 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
+            }
+            // 3. 새로운 비밀번호 저장
+            // Spring Data Jpa 는 기본적으로 JPA 영속성 컨텍스트 유지를 제공한다.
+            // 이 상태에서 해당 데이터의 값을 변경하면 자동으로 변경사항이 DB에 반영한다.
+            // 즉, 별도로 Update 쿼리를 날리지 않아도, 데이터만 변경하면 알아서 변경
+            user.get().setPassword(passwordEncoder.encode(newPassword));
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.CHANGE_PASSWORD),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 이전의 비밀번호 일치 여부 확인
+    @Transactional
+    public ResponseEntity verifyPwd(String userEmail, String password){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(userEmail);
+            // 이메일 존재하지 않는경우 에러처리
+            if(!user.isPresent()) {
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "해당 유저가 존재하지 않습니다."), HttpStatus.BAD_REQUEST);
+            }
+            // 1. 입력한 비밀번호와 현재 DB의 비밀번호가 일치하는지 확인
+            if(passwordEncoder.matches(password,user.get().getPassword())){
+                return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이전 비밀번호와 일치합니다.",true),HttpStatus.OK);
+            }
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이전 비밀번호와 일치하지 않습니다.",false),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    // 회원탈퇴
+//    @Transactional
+//    public ResponseEntity deleteUser(String userEmail){
+//        try{
+//            Optional<Users> user = usersRepository.findByEmail(userEmail);
+//            if(!user.isPresent()){
+//                return new ResponseEntity(DefaultRes.res(StatusCode.UNAUTHORIZED, ResponseMessage.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
+//            }
+//            usersRepository.delete(user);
+//            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.DELETE_USER),HttpStatus.OK);
+//        }catch(Exception e){
+//            e.printStackTrace();
+//            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+//                    HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+    // 카카오 로그인 전체
     @Transactional
     public String kakaoLoginService(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
         // 1. "인가 코드"로 "액세스 토큰" 요청
@@ -163,12 +275,11 @@ public class UserService {
         Users kakaoUser = registerKakaoUserIfNeed(kakaoUserInfo);
 
         //jwt 생성 - userName도 넣어서 만듦
-        String jwt = JwtUtil.createJwt(kakaoUser.getName(),secretKey,expiredMs,response);
+        String jwt = JwtUtil.createJwt(kakaoUser,secretKey,expiredMs,response);
         return jwt;
     }
 
     //1. "인가 코드"로 "액세스 토큰" 요청
-    @Transactional
     private @ResponseBody String getAccessToken(String code){
         //post 방식으로 key-value 타입으로 데이터 요청(카카오톡쪽으로)
         RestTemplate rt = new RestTemplate(); //http 요청 편하게 가능
@@ -180,7 +291,7 @@ public class UserService {
         MultiValueMap<String,String> params = new LinkedMultiValueMap<>();
         params.add("grant_type","authorization_code");
         params.add("client_id","a884467c621014f084d7262d91ddd761");
-        params.add("redirect_uri","http://localhost:8000/auth/kakao/callback");
+        params.add("redirect_uri","http://localhost:8080/auth/kakao/callback");
         params.add("code",code);
 
         // HttpHeader와 HttpBody를 하나의 오브젝트에 담기
@@ -253,8 +364,8 @@ public class UserService {
         if (kakaoUser == null) {
             // 회원가입
             // password: random UUID
-            String password = UUID.randomUUID().toString();
-//            String encodedPassword = passwordEncoder.encode(password);
+            // String password = UUID.randomUUID().toString();
+            // String encodedPassword = passwordEncoder.encode(password);
 
             // Users 객체 생성 및 저장
             kakaoUser = new Users(kakaoEmail, null, name, null, null, LoginType.KAKAO);

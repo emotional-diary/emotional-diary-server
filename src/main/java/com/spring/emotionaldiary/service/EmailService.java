@@ -1,5 +1,6 @@
 package com.spring.emotionaldiary.service;
 
+import com.spring.emotionaldiary.model.LoginType;
 import com.spring.emotionaldiary.model.Users;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
@@ -73,14 +74,20 @@ public class EmailService {
         // message.setFrom(new InternetAddress([이메일 계정], [설정할 이름]));
     }
 
-    public ResponseEntity emailDuplicationCheck(String email) throws Exception{
-         // 해당 이메일 계정이 이미 존재하는지 확인
-        if (usersRepository.existsByEmail(email)) {
+    public ResponseEntity findByEmail(String email) throws Exception{
+        // 이메일로 유저 정보 조회
+        try{
             Optional<Users> user = usersRepository.findByEmail(email);
-            return new ResponseEntity(DefaultRes.res(StatusCode.CONFLICT,ResponseMessage.DUPLICATE_EMAIL,user.get().getLoginType() + "로 가입된 회원입니다."),
-                        HttpStatus.CONFLICT);
+            // user가 있는데 loginType이 USER가 아니면 에러처리
+            if(user.isPresent() && user.get().getLoginType()!= LoginType.LOCAL){
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,user.get().getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
+            }
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일로 유저 정보 조회 성공",user),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity(DefaultRes.res(StatusCode.OK, "이메일 중복 체크 성공"), HttpStatus.OK);
     }
 
     public ResponseEntity sendEmailMessage(String email) throws Exception {
