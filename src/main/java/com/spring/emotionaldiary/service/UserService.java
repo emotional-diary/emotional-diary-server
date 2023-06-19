@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spring.emotionaldiary.badword.BadWordFiltering;
 import com.spring.emotionaldiary.dto.*;
-import com.spring.emotionaldiary.model.LoginType;
-import com.spring.emotionaldiary.model.Terms;
-import com.spring.emotionaldiary.model.UserTerms;
-import com.spring.emotionaldiary.model.Users;
+import com.spring.emotionaldiary.model.*;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
@@ -91,7 +88,7 @@ public class UserService {
 
             //jwt 생성 - jwt에 userName,userID 넣어서 생성
             String jwt = JwtUtil.createJwt(signupUser,secretKey,expiredMs,response);
-            signupRes.setLoginType(LoginType.LOCAL);
+            signupRes.setLoginType(signupUser.getLoginType());
             return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,signupRes), HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
@@ -262,25 +259,32 @@ public class UserService {
 //        }
 //    }
 
-    // 카카오 로그인 전체
+    // 카카오 로그인(카카오 유저 정보 받아오는거 까지의 기능)
     @Transactional
-    public String kakaoLoginService(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
+    public ResponseEntity kakaoLoginService(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
         // 1. "인가 코드"로 "액세스 토큰" 요청
         String accessToken = getAccessToken(code);
 
         // 2. 토큰으로 카카오 API 호출
         SocialUserInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
 
-        // 3. 카카오ID로 회원가입 처리
-        Users kakaoUser = registerKakaoUserIfNeed(kakaoUserInfo);
-
-        //jwt 생성 - userName도 넣어서 만듦
-        String jwt = JwtUtil.createJwt(kakaoUser,secretKey,expiredMs,response);
-        return jwt;
+        //3. 이미 가입된 유저인지 아닌지 확인
+        Users users = usersRepository.findByEmail(kakaoUserInfo.getEmail())
+                .orElse(null);
+        if(users != null){
+            if(users.getLoginType() != LoginType.KAKAO){ //카카오 유저가 아닌경우 에러처리
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,users.getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
+            }
+            //jwt 생성 - jwt에 userName,userID 넣어서 생성
+            String jwt = JwtUtil.createJwt(users,secretKey,expiredMs,response);
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.KAKAO_LOGIN_SUCCESS,LoginType.KAKAO), HttpStatus.OK);
+        }else{ // 회원가입 필요
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK, "카카오 회원가입 필요",kakaoUserInfo), HttpStatus.OK);
+        }
     }
 
     //1. "인가 코드"로 "액세스 토큰" 요청
-    private @ResponseBody String getAccessToken(String code){
+    private String getAccessToken(String code){
         //post 방식으로 key-value 타입으로 데이터 요청(카카오톡쪽으로)
         RestTemplate rt = new RestTemplate(); //http 요청 편하게 가능
 
@@ -323,7 +327,6 @@ public class UserService {
     }
 
     // 2. 토큰으로 카카오 API 호출
-    @Transactional
     private SocialUserInfoDto getKakaoUserInfo(String accessToken) throws JsonProcessingException{
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
@@ -348,32 +351,9 @@ public class UserService {
         String email = jsonNode.get("kakao_account").get("email").asText();
         String name = jsonNode.get("properties")
                 .get("nickname").asText();
+        String gender = jsonNode.get("kakao_account")
+                .get("gender").asText();
 
-        return new SocialUserInfoDto(email,name);
-    }
-
-    // 3. 카카오ID로 회원가입 처리
-    @Transactional
-    private Users registerKakaoUserIfNeed(SocialUserInfoDto kakaoUserInfo) {
-        // DB 에 중복된 email이 있는지 확인
-        String kakaoEmail = kakaoUserInfo.getEmail();
-        String name = kakaoUserInfo.getName();
-        Users kakaoUser = usersRepository.findByEmail(kakaoEmail)
-                .orElse(null);
-
-        if (kakaoUser == null) {
-            // 회원가입
-            // password: random UUID
-            // String password = UUID.randomUUID().toString();
-            // String encodedPassword = passwordEncoder.encode(password);
-
-            // Users 객체 생성 및 저장
-            kakaoUser = new Users(kakaoEmail, null, name, null, null, LoginType.KAKAO);
-            usersRepository.save(kakaoUser);
-        } else if (kakaoUser.getLoginType() == LoginType.LOCAL) {
-            // 로컬 에러나게 나중에 처리
-            return kakaoUser;
-        }
-        return kakaoUser;
+        return new SocialUserInfoDto(email,name,gender);
     }
 }

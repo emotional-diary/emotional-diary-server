@@ -7,6 +7,7 @@ public class ResponseMessage {
     public static final String VALIDATION_ERROR = "이메일 유효성 에러";
     public static final String SEND_EMAIL_AUTHENTICATION_CODE = "이메일 인증코드 전송 성공";
     public static final String LOGIN_SUCCESS = "로그인 성공";
+    public static final String KAKAO_LOGIN_SUCCESS = "카카오 로그인 성공";
     public static final String LOGIN_FAIL = "로그인 실패";
     public static final String FIND_PASSWORD = "비밀번호 찾기 성공";
 

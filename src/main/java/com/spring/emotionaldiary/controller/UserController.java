@@ -129,8 +129,13 @@ public class UserController {
         }
     }
 
-    @GetMapping("/auth/kakao/callback")
-    public String kakaoLogin(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
-        return userService.kakaoLoginService(code,response);
+    // 카카오 소셜 로그인(카카오 정보 받아오는 기능까지)
+    @GetMapping("/api/v1/users/login/kakao")
+    public ResponseEntity kakaoLogin(@RequestParam String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
+        try{
+            return userService.kakaoLoginService(code,response);
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
