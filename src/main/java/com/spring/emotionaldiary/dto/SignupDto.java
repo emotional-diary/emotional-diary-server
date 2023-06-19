@@ -4,6 +4,7 @@ import com.spring.emotionaldiary.model.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.Email;
@@ -26,21 +27,24 @@ public class SignupDto {
     @Pattern(regexp = "^[가-힣a-z0-9]{2,16}$", message = "숫자, 특수문자, 이모지, 공백, 자음, 모음을 제외한 2~16자를 입력해주세요")
     private String name;
 
-    @Length(min = 8,max = 8,message = "생년월일 8자리를 입력해주세요")
+    @Length(min = 6,max = 6,message = "생년월일 6자리를 입력해주세요")
     private String birth;
 
     private GenderType gender;
+
+    @ColumnDefault("'LOCAL'")
     private LoginType loginType;
 
     private List<TermsDto> terms;
 
     @Builder
-    public SignupDto(String email, String password, String name, String birth, GenderType gender,List<TermsDto> terms) {
+    public SignupDto(String email, String password, String name, String birth, GenderType gender,LoginType loginType,List<TermsDto> terms) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.birth = birth;
         this.gender = gender;
+        this.loginType = loginType;
         this.terms = terms;
     }
 
@@ -51,7 +55,7 @@ public class SignupDto {
                 .name(name)
                 .birth(birth)
                 .gender(gender)
-                .loginType(LoginType.LOCAL)
+                .loginType(loginType)
                 .build();
     }
 }

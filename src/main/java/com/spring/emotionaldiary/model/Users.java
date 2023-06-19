@@ -37,7 +37,7 @@ public class Users {
     @Column(nullable = false, length = 16)
     private String name;
 
-    @Length(min = 8,max = 8,message = "생년월일 8자리를 입력해주세요")
+    @Length(min = 6,max = 6,message = "생년월일 6자리를 입력해주세요")
     private String birth;
 
     @Enumerated(EnumType.STRING)

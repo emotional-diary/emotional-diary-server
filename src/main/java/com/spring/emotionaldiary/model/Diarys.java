@@ -35,11 +35,11 @@ public class Diarys {
     @Column(columnDefinition = "TEXT",name = "meta_data")
     private String metaData;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "writer_id",nullable = false)
     private Users users;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "comment_id",nullable = false)
     private AIComments aiComments;
 
