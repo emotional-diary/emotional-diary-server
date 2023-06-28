@@ -58,7 +58,7 @@ public class EmailController {
 
     @GetMapping("/email-validation")
     public ResponseEntity sendEmailAndCode(@Valid @RequestBody EmailAuthenticationDto emailCodeReq) throws Exception {
-        if (emailService.getUserIdByEmail(emailCodeReq.getEmail(),emailCodeReq.getCode())) {
+        if (emailService.getuserIDByEmail(emailCodeReq.getEmail(),emailCodeReq.getCode())) {
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일 인증 성공"),HttpStatus.OK);
         }
         return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"잘못된 인증코드 입니다."),HttpStatus.BAD_REQUEST);

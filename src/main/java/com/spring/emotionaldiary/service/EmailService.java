@@ -101,7 +101,7 @@ public class EmailService {
         return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.SEND_EMAIL_AUTHENTICATION_CODE), HttpStatus.OK);
     }
 
-    public Boolean getUserIdByEmail(String email,String code) {
+    public Boolean getuserIDByEmail(String email,String code) {
         String validCode = redisUtil.getData(email); // 입력 받은 인증 코드(key)를 이용해 email(value)을 꺼낸다.
         if(validCode.equals(code)){
             return true;

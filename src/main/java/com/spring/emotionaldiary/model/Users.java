@@ -21,7 +21,7 @@ public class Users {
     @Id // 해당 변수가 primary key로 사용할 수 있는 식별자의 역할을 할 수 있도록 하는 어노테이션
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동 시퀀스
     @Column(name = "user_id")
-    private Long userId;
+    private Long userID;
 
     @NotBlank(message = "이메일을 입력해주세요")
     @Length(min = 6,max = 254,message = "이메일의 길이는 6~254자압니다")

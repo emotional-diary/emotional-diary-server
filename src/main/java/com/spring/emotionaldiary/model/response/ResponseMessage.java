@@ -13,6 +13,7 @@ public class ResponseMessage {
 
     public static final String CHANGE_PASSWORD = "비밀번호 변경 성공";
     public static final String READ_USER = "회원 정보 조회 성공";
+    public static final String READ_DIARYS = "일기 정보 조회 성공";
     public static final String UNAUTHORIZED = "회원 인증 실패";
     // public static final String NOT_FOUND_USER = "회원을 찾을 수 없습니다.";
 
