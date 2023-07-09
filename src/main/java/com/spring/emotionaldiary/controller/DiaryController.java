@@ -34,20 +34,20 @@ public class DiaryController {
         // Flask 서버의 URL
         String flaskUrl = "http://127.0.0.1:5000";
 
-        // HTTP 요청 헤더 설정
+// HTTP 요청 헤더 설정
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.TEXT_PLAIN);
 
-        // 보낼 데이터 준비
+// 보낼 데이터 준비
         String content = "This is a comment to be analyzed";
 
-        // HTTP 요청 엔티티 생성
+// HTTP 요청 엔티티 생성
         HttpEntity<String> requestEntity = new HttpEntity<>(content, headers);
 
-        // Flask 서버로 POST 요청 전송
+// Flask 서버로 POST 요청 전송
         ResponseEntity<String> responseEntity = restTemplate.exchange(flaskUrl, HttpMethod.POST, requestEntity, String.class);
 
-        // 응답 받은 comment 출력
+// 응답 받은 comment 출력
         String analyzedComment = responseEntity.getBody();
         System.out.println("Analyzed Comment: " + analyzedComment);
     }
@@ -85,19 +85,9 @@ public class DiaryController {
         }
     }
 
-    // 일기 상세 조회
-    @GetMapping("/api/v1/users/diary/{diaryID}")
-    public ResponseEntity getDiary(@PathVariable("diaryID") Long diaryID) {
-        try {
-            return diaryService.getDiaryByDiaryID(diaryID);
-        } catch(Exception e){
-            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     // 일기 삭제
     @DeleteMapping("/api/v1/users/diary/{diaryID}")
-    public ResponseEntity deleteDiary(@PathVariable("diaryID") Long diaryID) {
+    public ResponseEntity getDiarys(@PathVariable("diaryID") Long diaryID) {
         try {
             return diaryService.deleteDiary(diaryID);
         } catch(Exception e){

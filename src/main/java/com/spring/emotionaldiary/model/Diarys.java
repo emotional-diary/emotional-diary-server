@@ -20,6 +20,9 @@ public class Diarys {
     @Column(name = "diary_id")
     private Long diaryID;
 
+    @Column(nullable = false)
+    private String title; // ㅈㅔ목 없애기
+
     @Column(columnDefinition = "TEXT",nullable = false)
     private String content;
 

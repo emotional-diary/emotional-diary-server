@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 public class DiaryService {
     private final DiarysRepository diarysRepository;
 
-    // 일기 조건별 조회
     @Transactional
     public ResponseEntity getDiarysByDiaryAtAndUserEmail(Date startAt, Date endAt, String email, Pageable diaryPageable) {
         try {
@@ -52,25 +51,7 @@ public class DiaryService {
         }
     }
 
-    //일기 상세 조회
-    @Transactional
-    public ResponseEntity getDiaryByDiaryID(Long diaryID){
-        try {
-            Optional<Diarys> diary = diarysRepository.findById(diaryID);
-            if (!diary.isPresent()) {
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "해당 일기가 존재하지 않습니다."), HttpStatus.BAD_REQUEST);
-            }
-            List<DiarysDto> diarysResList = diary.stream()
-                    .map(d -> new DiarysDto(d))
-                    .collect(Collectors.toList());
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK, "일기 상세 조회 성공",diarysResList), HttpStatus.OK);
-        }catch (Exception e){
-            e.printStackTrace();
-            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
 
-    // 일기 삭제
     @Transactional
     public ResponseEntity deleteDiary(Long diaryID){
         try {
