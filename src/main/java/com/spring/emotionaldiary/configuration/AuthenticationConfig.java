@@ -1,6 +1,7 @@
 package com.spring.emotionaldiary.configuration;
 
 import com.spring.emotionaldiary.service.UserService;
+import com.spring.emotionaldiary.utils.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class AuthenticationConfig {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
     @Value("${jwt.secret}")
     private String secretKey;
     @Bean
@@ -27,14 +29,14 @@ public class AuthenticationConfig {
                 .csrf().disable() //프론트엔드가 분리된 환경을 가정
                 .cors().and()
                 .authorizeRequests()
-                .antMatchers("/api/v1/users/signup","/api/v1/users/login/**","/api/v1/users/email-validation","/api/v1/users/email","/api/v1/users/find-pwd","/api/v1/users/diary").permitAll() //접근 허용하는 url
+                .antMatchers("/api/v1/auth/reissue","/api/v1/auth/validate","/api/v1/users/signup","/api/v1/users/login/**","/api/v1/users/email-validation","/api/v1/users/email","/api/v1/users/find-pwd").permitAll() //접근 허용하는 url
                 .anyRequest().authenticated() //나머지는 다 인증처리 필요
                 .and()
                 .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS) //jwt 사용하는 경우에 씀, 세션 사용 안함
                 .and()
                 //jwt 설정하는 경우, addFilter를 통해 직접 설정해줘야함
-                .addFilterBefore(new JwtFilter(userService,secretKey), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtFilter(userService,jwtUtil,secretKey), UsernamePasswordAuthenticationFilter.class)
                 // username과 passoword를 가지고 인증하기 전에 jwt로 인증을하기 때문에 앞에 JwtFilter 설정
                 .build();
     }

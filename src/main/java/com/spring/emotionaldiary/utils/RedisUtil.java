@@ -5,7 +5,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service

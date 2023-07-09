@@ -13,6 +13,7 @@ import com.spring.emotionaldiary.repository.TermsRepository;
 import com.spring.emotionaldiary.repository.UserTermsRepository;
 import com.spring.emotionaldiary.repository.UsersRepository;
 import com.spring.emotionaldiary.utils.JwtUtil;
+import com.spring.emotionaldiary.utils.RedisUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletResponse;
@@ -32,23 +32,31 @@ public class UserService {
 
     @Value("${jwt.secret}")
     private String secretKey;
-    private Long expiredMs = 1000*60*60l; //long타입 l 붙여줘야함, 1시(1000=1초 * 60 * 60)
+    private final String SERVER = "Server";
+    private final long COOKIE_EXPIRATION = 7776000; // 90일
     private final UsersRepository usersRepository;
     private final TermsRepository termsRepository;
     private final UserTermsRepository userTermsRepository;
+    private final AuthService authService;
+
+    private final RedisUtil redisUtil;
+    private final JwtUtil jwtUtil;
     BadWordFiltering badWordFiltering = new BadWordFiltering();
 
     //스프링시큐리티 BCryptPasswordEncoder 기본 round = 10으로 설정되어 있음
     BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository) {
+    public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository, AuthService authService, RedisUtil redisUtil, JwtUtil jwtUtil) {
         this.usersRepository = usersRepository;
         this.termsRepository = termsRepository;
         this.userTermsRepository = userTermsRepository;
+        this.authService = authService;
+        this.redisUtil = redisUtil;
+        this.jwtUtil = jwtUtil;
     }
 
     @Transactional
-    public ResponseEntity signup(SignupDto signUp, HttpServletResponse response) {
+    public ResponseEntity signup(SignupDto signUp,HttpServletResponse response) {
         final SignupRes signupRes = new SignupRes();
 
         // 데이터베이스 저장 중에 발생할 수 있는 에러를 처리
@@ -87,9 +95,20 @@ public class UserService {
             System.out.println(TransactionSynchronizationManager.getCurrentTransactionName());
 
             //jwt 생성 - jwt에 userName,userID 넣어서 생성
-            String jwt = JwtUtil.createJwt(signupUser,secretKey,expiredMs,response);
+            TokenDto tokenDto = authService.generateToken(SERVER,signupUser);
+
+            // RT 저장
+            HttpCookie httpCookie = ResponseCookie.from("refresh-token", tokenDto.getRefreshToken())
+                    .maxAge(COOKIE_EXPIRATION)
+                    .httpOnly(true)
+                    .secure(true)
+                    .build();
+
+            response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDto.getAccessToken());
+            response.setHeader(HttpHeaders.SET_COOKIE, httpCookie.toString());
+
             signupRes.setLoginType(signupUser.getLoginType());
-            return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,signupRes), HttpStatus.CREATED);
+            return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER,tokenDto), HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
@@ -113,9 +132,23 @@ public class UserService {
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,ResponseMessage.LOGIN_FAIL),HttpStatus.BAD_REQUEST);
             }
             //jwt 생성 - user도 넣어서 만듦
-            JwtUtil.createJwt(user.get(),secretKey,expiredMs,response);
+            // accessToken, refreshToken 생성 -> accessToken은 Header에 바로 전달
+            // refreshToken은 redis에 저장 (key : userID, value: refreshToken, 2주동안)
+            TokenDto tokenDto = authService.generateToken(SERVER,user.get());
+//            redisUtil.setDataExpire(String.valueOf(user.get().getUserID()),tokenDto.getRefreshToken(), 14L * 24L * 60L * 60L); // 2주
+            // RT 저장
+            HttpCookie httpCookie = ResponseCookie.from("refresh-token", tokenDto.getRefreshToken())
+                    .maxAge(COOKIE_EXPIRATION)
+                    .httpOnly(true)
+                    .secure(true)
+                    .build();
+
+            response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDto.getAccessToken());
+            response.setHeader(HttpHeaders.SET_COOKIE, httpCookie.toString());
+
             signinRes.setLoginType(user.get().getLoginType());
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,signinRes),HttpStatus.OK);
+
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,tokenDto),HttpStatus.OK);
         }catch(Exception e){
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
@@ -276,7 +309,18 @@ public class UserService {
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,users.getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
             }
             //jwt 생성 - jwt에 userName,userID 넣어서 생성
-            String jwt = JwtUtil.createJwt(users,secretKey,expiredMs,response);
+            TokenDto tokenDto = authService.generateToken(SERVER,users);
+
+            // RT 저장
+            HttpCookie httpCookie = ResponseCookie.from("refresh-token", tokenDto.getRefreshToken())
+                    .maxAge(COOKIE_EXPIRATION)
+                    .httpOnly(true)
+                    .secure(true)
+                    .build();
+
+            response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDto.getAccessToken());
+            response.setHeader(HttpHeaders.SET_COOKIE, httpCookie.toString());
+
             return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.KAKAO_LOGIN_SUCCESS,LoginType.KAKAO), HttpStatus.OK);
         }else{ // 회원가입 필요
             return new ResponseEntity(DefaultRes.res(StatusCode.OK, "카카오 회원가입 필요",kakaoUserInfo), HttpStatus.OK);

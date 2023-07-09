@@ -21,7 +21,7 @@ public class Diarys {
     private Long diaryID;
 
     @Column(nullable = false)
-    private String title;
+    private String title; // ㅈㅔ목 없애기
 
     @Column(columnDefinition = "TEXT",nullable = false)
     private String content;
@@ -35,6 +35,10 @@ public class Diarys {
     @Column(columnDefinition = "TEXT",name = "meta_data")
     private String metaData;
 
+    // fetch 종류 : EAGER, LAZY
+    // LAZY -> JSON 에러 남, hibernateLazyInitializer를 직렬화 에러
+    // 직렬화 :Object를 연속된 String 데이터나 연속된 Bytes 데이터로 바꾸는 것
+    // EAGER -> 에러는 안나지만, users의 모든 데이터 조회됨
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "writer_id",nullable = false)
     private Users users;
