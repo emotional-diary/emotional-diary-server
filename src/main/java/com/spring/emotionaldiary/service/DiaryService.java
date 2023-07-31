@@ -10,12 +10,14 @@ import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
 import com.spring.emotionaldiary.repository.DiarysRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.List;
@@ -50,7 +52,6 @@ public class DiaryService {
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @Transactional
     public ResponseEntity deleteDiary(Long diaryID){

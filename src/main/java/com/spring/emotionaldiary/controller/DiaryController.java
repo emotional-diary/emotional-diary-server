@@ -1,7 +1,6 @@
 package com.spring.emotionaldiary.controller;
 
-import com.spring.emotionaldiary.dto.DiarysDto;
-import com.spring.emotionaldiary.dto.updateUserDto;
+import com.spring.emotionaldiary.dto.ModelInfo;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
@@ -17,7 +16,6 @@ import org.springframework.web.client.RestTemplate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
 @RestController
 @Slf4j
@@ -25,32 +23,48 @@ import java.util.List;
 public class DiaryController {
 
     private final DiaryService diaryService;
-
-    @GetMapping("/data")
-    public void getData() {
-        // 데이터 처리 로직
-        RestTemplate restTemplate = new RestTemplate();
-
-        // Flask 서버의 URL
-        String flaskUrl = "http://127.0.0.1:5000";
-
-// HTTP 요청 헤더 설정
+    @PostMapping("/predict")
+    public @ResponseBody ResponseEntity<String> predict(@RequestBody ModelInfo modelInfo) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.TEXT_PLAIN);
+        // Add any required headers, such as Content-Type if needed.
+        // headers.add("Content-Type", "application/json");
 
-// 보낼 데이터 준비
-        String content = "This is a comment to be analyzed";
+        HttpEntity<ModelInfo> requestEntity = new HttpEntity<>(modelInfo, headers);
+        RestTemplate rt = new RestTemplate();
 
-// HTTP 요청 엔티티 생성
-        HttpEntity<String> requestEntity = new HttpEntity<>(content, headers);
+        ResponseEntity<String> response = rt.exchange(
+                "http://192.168.25.11:5000/api/model/predict",
+                HttpMethod.POST,
+                requestEntity,
+                String.class
+        );
 
-// Flask 서버로 POST 요청 전송
-        ResponseEntity<String> responseEntity = restTemplate.exchange(flaskUrl, HttpMethod.POST, requestEntity, String.class);
-
-// 응답 받은 comment 출력
-        String analyzedComment = responseEntity.getBody();
-        System.out.println("Analyzed Comment: " + analyzedComment);
+        return response;
     }
+
+//    @GetMapping("/data")
+//    public String getData() {
+//        String inputText = "안녕";
+//        // AI 서버의 주소
+//        String aiServerUrl = "http://192.168.25.11:5000/api/model/predict";
+//
+//        // HTTP 요청을 보낼 때 사용할 RestTemplate 객체 생성
+//        RestTemplate restTemplate = new RestTemplate();
+//
+//        // 요청의 헤더 설정
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON);
+//
+//        HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+//
+//        // AI 서버로 POST 요청 보내기
+//        String response = restTemplate.postForObject(aiServerUrl, request, String.class);
+//
+//        // AI 서버로부터 받은 응답 처리 (예를 들면 답변 데이터 추출)
+//        // String answer = parseResponse(response);
+//
+//        return response;
+//    }
 
     // 내 일기 조회(조회 조건 : startAt, endAt, page, size, sort 가능)
     @GetMapping("/api/v1/users/diarys")
