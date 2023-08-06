@@ -1,59 +1,82 @@
 package com.spring.emotionaldiary.controller;
 
-import com.spring.emotionaldiary.dto.DiarysDto;
-import com.spring.emotionaldiary.dto.updateUserDto;
+import com.spring.emotionaldiary.dto.*;
 import com.spring.emotionaldiary.model.response.DefaultRes;
 import com.spring.emotionaldiary.model.response.ResponseMessage;
 import com.spring.emotionaldiary.model.response.StatusCode;
 import com.spring.emotionaldiary.service.DiaryService;
+import com.spring.emotionaldiary.utils.ValidateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.Errors;
+import org.springframework.validation.ValidationUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
+@RequestMapping("/api/v1/users")
 @RestController
 @Slf4j
 @RequiredArgsConstructor
 public class DiaryController {
+    @Autowired
+    private DiaryService diaryService;
+    @Autowired
+    private ValidateUtil validateUtil;
 
-    private final DiaryService diaryService;
+    // 내 일기 작성
+    @PostMapping("/diary")
+    public ResponseEntity createDiary(@Valid @RequestBody DiaryDto diaryDto,Errors errors ,Authentication authentication){
+        try {
+            if(errors.hasErrors()){
+                /* 유효성 통과 못한 필드와 메시지를 핸들링 */
+                Map<String, String> validatorResult = validateUtil.validateHandling(errors);
+                System.out.println(validatorResult);
+                for (String key : validatorResult.keySet()) {
+                    System.out.println(key);
+                    System.out.println(validatorResult.get(key));
+                    return new ResponseEntity<>(DefaultRes.res(StatusCode.BAD_REQUEST, key + " : " + validatorResult.get(key)), HttpStatus.BAD_REQUEST);
+                }
+            }
+            return diaryService.createDiary((String) authentication.getDetails(),diaryDto);
+        } catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-    @GetMapping("/data")
-    public void getData() {
-        // 데이터 처리 로직
-        RestTemplate restTemplate = new RestTemplate();
-
-        // Flask 서버의 URL
-        String flaskUrl = "http://127.0.0.1:5000";
-
-// HTTP 요청 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.TEXT_PLAIN);
-
-// 보낼 데이터 준비
-        String content = "This is a comment to be analyzed";
-
-// HTTP 요청 엔티티 생성
-        HttpEntity<String> requestEntity = new HttpEntity<>(content, headers);
-
-// Flask 서버로 POST 요청 전송
-        ResponseEntity<String> responseEntity = restTemplate.exchange(flaskUrl, HttpMethod.POST, requestEntity, String.class);
-
-// 응답 받은 comment 출력
-        String analyzedComment = responseEntity.getBody();
-        System.out.println("Analyzed Comment: " + analyzedComment);
+    // 내 일기 수정
+    @PatchMapping("/diary/{diaryID}")
+    public ResponseEntity updateDiary(@Valid @RequestBody updateDiaryDto updateDiaryDto,Errors errors,@PathVariable("diaryID") Long diaryID){
+        try {
+            if(errors.hasErrors()){
+                /* 유효성 통과 못한 필드와 메시지를 핸들링 */
+                Map<String, String> validatorResult = validateUtil.validateHandling(errors);
+                System.out.println(validatorResult);
+                for (String key : validatorResult.keySet()) {
+                    System.out.println(key);
+                    System.out.println(validatorResult.get(key));
+                    return new ResponseEntity<>(DefaultRes.res(StatusCode.BAD_REQUEST, key + " : " + validatorResult.get(key)), HttpStatus.BAD_REQUEST);
+                }
+            }
+            return diaryService.updateDiary(diaryID,updateDiaryDto);
+        } catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // 내 일기 조회(조회 조건 : startAt, endAt, page, size, sort 가능)
-    @GetMapping("/api/v1/users/diarys")
+    @GetMapping("/diarys")
     public ResponseEntity getDiarys(@RequestParam(required = false) String startAt, @RequestParam(required = false)  String endAt, Pageable diaryPageable, Authentication authentication) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
@@ -86,10 +109,20 @@ public class DiaryController {
     }
 
     // 일기 삭제
-    @DeleteMapping("/api/v1/users/diary/{diaryID}")
-    public ResponseEntity getDiarys(@PathVariable("diaryID") Long diaryID) {
+    @DeleteMapping("/diary/{diaryID}")
+    public ResponseEntity deleteDiary(@PathVariable("diaryID") Long diaryID) {
         try {
             return diaryService.deleteDiary(diaryID);
+        } catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 일기ID별 상세 조회
+    @GetMapping("/diary/{diaryID}")
+    public ResponseEntity selectDiary(@PathVariable("diaryID") Long diaryID) {
+        try {
+            return diaryService.selectDiary(diaryID);
         } catch(Exception e){
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }

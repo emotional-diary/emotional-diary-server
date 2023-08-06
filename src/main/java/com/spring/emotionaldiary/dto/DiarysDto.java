@@ -1,6 +1,7 @@
 package com.spring.emotionaldiary.dto;
 
 import com.spring.emotionaldiary.model.Diarys;
+import com.spring.emotionaldiary.model.Emotion;
 import lombok.Getter;
 
 import java.sql.Timestamp;
@@ -9,13 +10,11 @@ import java.sql.Timestamp;
 public class DiarysDto {
     private Long diaryID;
 
-    private String title;
-
     private String content;
 
     private String imageUrl;
 
-    private String emotion;
+    private Emotion emotion;
 
     private String metaData;
 
@@ -27,7 +26,6 @@ public class DiarysDto {
 
     public DiarysDto(Diarys d) {
         diaryID = d.getDiaryID();
-        title = d.getTitle();
         content = d.getContent();
         imageUrl = d.getImageUrl();
         emotion = d.getEmotion();

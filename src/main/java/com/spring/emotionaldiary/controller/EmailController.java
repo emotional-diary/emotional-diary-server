@@ -56,7 +56,7 @@ public class EmailController {
         }
     }
 
-    @GetMapping("/email-validation")
+    @PostMapping("/email-validation/check")
     public ResponseEntity sendEmailAndCode(@Valid @RequestBody EmailAuthenticationDto emailCodeReq) throws Exception {
         if (emailService.getuserIDByEmail(emailCodeReq.getEmail(),emailCodeReq.getCode())) {
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일 인증 성공"),HttpStatus.OK);
