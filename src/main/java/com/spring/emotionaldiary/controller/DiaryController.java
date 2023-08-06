@@ -26,6 +26,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+@RequestMapping("/api/v1/users")
 @RestController
 @Slf4j
 @RequiredArgsConstructor
