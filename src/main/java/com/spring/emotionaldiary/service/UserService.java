@@ -338,7 +338,7 @@ public class UserService {
 
         MultiValueMap<String,String> params = new LinkedMultiValueMap<>();
         params.add("grant_type","authorization_code");
-        params.add("client_id","a884467c621014f084d7262d91ddd761");
+        params.add("client_id","19cc36f3dd9d3c88e8ab9d797fa5d79e");
         params.add("redirect_uri","http://localhost:8080/auth/kakao/callback");
         params.add("code",code);
 

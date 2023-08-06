@@ -1,6 +1,7 @@
 package com.spring.emotionaldiary.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
@@ -8,9 +9,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import java.sql.Timestamp;
 
 @Data
+@Builder
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,17 +23,16 @@ public class Diarys {
     @Column(name = "diary_id")
     private Long diaryID;
 
-    @Column(nullable = false)
-    private String title; // ㅈㅔ목 없애기
-
     @Column(columnDefinition = "TEXT",nullable = false)
+    @NotBlank(message = "일기 내용을 입력해주세요")
     private String content;
 
     @Column(name = "image_url")
     private String imageUrl;
 
     @Column(nullable = false)
-    private String emotion;
+    @Enumerated(EnumType.STRING)
+    private Emotion emotion;
 
     @Column(columnDefinition = "TEXT",name = "meta_data")
     private String metaData;
