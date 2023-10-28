@@ -1,0 +1,6 @@
+### MAC ###
+.DS_Store
+
+### properties ###
+*.properties
+src/main/resources/application.properties

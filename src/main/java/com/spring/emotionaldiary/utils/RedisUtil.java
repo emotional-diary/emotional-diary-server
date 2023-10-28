@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RedisUtil {
     private final StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisBlackListTemplate;
 
     // key를 통해 value 리턴
     public String getData(String key) {
@@ -40,4 +41,24 @@ public class RedisUtil {
     public void deleteData(String key) {
         redisTemplate.delete(key);
     }
+
+    public void setBlackList(String key, String value,long duration){
+        ValueOperations<String, String> valueOperations = redisBlackListTemplate.opsForValue();
+        Duration expireDuration = Duration.ofSeconds(duration);
+        valueOperations.set(key, value, expireDuration);
+    }
+
+    public String getBlackList(String key) {
+        ValueOperations<String, String> valueOperations = redisBlackListTemplate.opsForValue();
+        return valueOperations.get(key);
+    }
+
+    public void deleteBlackList(String key){
+        redisBlackListTemplate.delete(key);
+    }
+
+    public boolean hasKeyBlackList(String key){
+        return Boolean.TRUE.equals(redisBlackListTemplate.hasKey(key));
+    }
+
 }
