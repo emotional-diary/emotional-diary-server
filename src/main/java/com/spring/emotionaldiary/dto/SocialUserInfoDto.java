@@ -9,12 +9,10 @@ import lombok.RequiredArgsConstructor;
 @NoArgsConstructor
 public class SocialUserInfoDto {
     private String email;
-    private String name;
     private String gender;
 
-    public SocialUserInfoDto(String email, String name,String gender) {
+    public SocialUserInfoDto(String email,String gender) {
         this.email = email;
-        this.name = name;
         this.gender = gender;
     }
 //    private String birth;

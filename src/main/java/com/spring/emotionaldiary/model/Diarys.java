@@ -1,16 +1,20 @@
 package com.spring.emotionaldiary.model;
 
+import com.spring.emotionaldiary.dto.ImgRes;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,8 +31,10 @@ public class Diarys {
     @NotBlank(message = "일기 내용을 입력해주세요")
     private String content;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    // JPA의 Transient 애노테이션 : 엔티티 객체의 데이터와 테이블의 컬럼과 매핑하고 있는 관계 제외
+    // 해당 데이터를 테이블의 컬럼과 매핑X
+    @Transient
+    private final List<ImgRes> imgsList = new ArrayList<>();
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -41,11 +47,11 @@ public class Diarys {
     // LAZY -> JSON 에러 남, hibernateLazyInitializer를 직렬화 에러
     // 직렬화 :Object를 연속된 String 데이터나 연속된 Bytes 데이터로 바꾸는 것
     // EAGER -> 에러는 안나지만, users의 모든 데이터 조회됨
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "writer_id",nullable = false)
     private Users users;
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "comment_id",nullable = false)
     private AIComments aiComments;
 
@@ -58,5 +64,5 @@ public class Diarys {
     private Timestamp updatedAt;
 
     @Column(name = "diary_at",nullable = false)
-    private Timestamp diaryAt;
+    private LocalDate diaryAt;
 }

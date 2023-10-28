@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletResponse;
 import java.time.Duration;
 import java.util.Date;
 
@@ -34,11 +33,15 @@ public class JwtUtil {
                 .getBody().get("userEmail",String.class);
     }
 
-//    public static boolean isExpired(String token, String secretKey){
-//        // jwt 토큰 만료된 시간이 현재시간보다 이전이면 expired(만료)된것으로 처리
-//        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token)
-//                .getBody().getExpiration().before(new Date());
-//    }
+    // JWT 토큰이 만료될 때까지 남은 시간을 계산
+    public Long getRemainingTimeUntilExpiration(String token, String secretKey){
+
+        Claims claims = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
+        long currentTimeMillis = System.currentTimeMillis();
+        long expirationTimeMillis = claims.getExpiration().getTime();
+        System.out.println(expirationTimeMillis);
+        return expirationTimeMillis - currentTimeMillis;
+    }
 
 //    public static String createAccessToken(Users users, String secretKey,HttpServletResponse response) {
 //        String accessToken = createJwt(users,secretKey,accessTokenValidTime,response);

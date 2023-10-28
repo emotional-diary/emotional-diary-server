@@ -48,6 +48,9 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-core:2.12.3'
 	// Jackson Databind
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
+
+	// aws S3
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 }
 
 //tasks.named('test') {

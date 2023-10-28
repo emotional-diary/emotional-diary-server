@@ -1,17 +1,13 @@
 package com.spring.emotionaldiary.configuration;
 
-import com.spring.emotionaldiary.model.response.DefaultRes;
-import com.spring.emotionaldiary.model.response.ResponseMessage;
-import com.spring.emotionaldiary.model.response.StatusCode;
 import com.spring.emotionaldiary.service.UserService;
 import com.spring.emotionaldiary.utils.JwtUtil;
+import com.spring.emotionaldiary.utils.RedisUtil;
 import io.jsonwebtoken.IncorrectClaimException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +26,7 @@ import java.util.Collections;
 public class JwtFilter extends OncePerRequestFilter { //안보내는 요청에도 허용할 수 있기 때문에 매번 jwt 토큰 요청해야함
 
     private final UserService userService;
+    private final RedisUtil redisUtil;
     private final JwtUtil jwtUtil;
     @Value("${jwt.secret}")
     private final String secretKey;
@@ -59,6 +56,11 @@ public class JwtFilter extends OncePerRequestFilter { //안보내는 요청에�
 
         try { // 정상 토큰인지 검사
             if (accessToken != null && jwtUtil.validateAccessToken(accessToken)) {
+                // 로그아웃 한 유저인지 아닌지 검사
+                if (redisUtil.hasKeyBlackList(accessToken)) {
+                    // RuntimeException을 강제로 발생, 예외 처리
+                    throw new RuntimeException("로그아웃!");
+                }
                 String userName = jwtUtil.getUserName(accessToken, secretKey);
                 String userEmail = jwtUtil.getUserEmail(accessToken, secretKey);
                 log.info(userEmail);

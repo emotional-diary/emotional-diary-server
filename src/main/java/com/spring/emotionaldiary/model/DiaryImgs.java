@@ -1,31 +1,34 @@
 package com.spring.emotionaldiary.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
 
-@Data
-@AllArgsConstructor
+@Getter
 @NoArgsConstructor
-@Entity(name = "diary_tags")
-public class DiaryTags {
+@Entity(name = "diary_imgs")
+public class DiaryImgs {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동 시퀀스
-    @Column(name = "diary_tag_id")
-    private Long diaryTagID;
+    @Column(name = "diary_img_id")
+    private Long diaryImgID;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diary_id",nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE) // diary가 삭제될때 img 같이 삭제
     private Diarys diarys;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id",nullable = false)
-    private Tags tags;
+    @Column(nullable = false)
+    private String imgUrl;
 
     @CreationTimestamp
     @Column(name = "created_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
@@ -34,4 +37,9 @@ public class DiaryTags {
     @UpdateTimestamp
     @Column(name = "updated_at",nullable = false,columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp updatedAt;
+
+    public DiaryImgs(String imgUrl, Diarys diarys) {
+        this.imgUrl = imgUrl;
+        this.diarys = diarys;
+    }
 }

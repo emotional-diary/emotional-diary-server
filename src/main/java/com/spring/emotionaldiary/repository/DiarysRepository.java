@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -16,6 +17,6 @@ import java.util.List;
 @Repository
 public interface DiarysRepository extends JpaRepository<Diarys,Long> {
 //    List<Diarys> findByDiaryAtBetweenAndUsers_Email(Date startAt, Date endAt,String email);
-    Page<Diarys> findByDiaryAtBetweenAndUsers_Email(Date startAt, Date endAt, String email, Pageable pageable);
+    Page<Diarys> findByDiaryAtBetweenAndUsers_Email(LocalDate startAt, LocalDate endAt, String email, Pageable pageable);
 
 }

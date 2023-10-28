@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.util.Map;
@@ -99,21 +100,31 @@ public class UserController {
 
 
     // 회원탈퇴 (jwt claims에 저장한 userEmail 불러와서 정보 조회)
-//    @DeleteMapping("/api/v1/users")
-//    public ResponseEntity deleteUser(Authentication authentication){
-//        try{
-//            //authentication.getDetails는 jwt에 넣은 userEmail
-//            return userService.deleteUser((String) authentication.getDetails());
-//        }catch(Exception e){
-//            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+    @DeleteMapping("/api/v1/users")
+    public ResponseEntity WithdrawalUser(HttpServletRequest servletRequest,Authentication authentication){
+        try{
+            //authentication.getDetails는 jwt에 넣은 userEmail
+            return userService.WithdrawalUser(servletRequest.getHeader(HttpHeaders.AUTHORIZATION).substring(7),(String) authentication.getDetails());
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     // 로컬 로그인
     @PostMapping("/api/v1/users/login/local")
     public ResponseEntity login(@RequestBody LoginDto loginDto,HttpServletResponse response){
         try{
             return userService.login(loginDto,response);
+        }catch(Exception e){
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+     //로그아웃
+    @GetMapping("/api/v1/users/logout")
+    public ResponseEntity logout(HttpServletRequest servletRequest){
+        try{
+            return userService.logout(servletRequest.getHeader(HttpHeaders.AUTHORIZATION).substring(7));
         }catch(Exception e){
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -131,8 +142,9 @@ public class UserController {
 
     // 카카오 소셜 로그인(카카오 정보 받아오는 기능까지)
     @GetMapping("/api/v1/users/login/kakao")
-    public ResponseEntity kakaoLogin(@RequestParam String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
+    public ResponseEntity kakaoLogin(@RequestParam String code,HttpServletResponse response) { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
         try{
+            System.out.println(code);
             return userService.kakaoLoginService(code,response);
         }catch(Exception e){
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);

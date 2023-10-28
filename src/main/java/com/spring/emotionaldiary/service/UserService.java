@@ -24,6 +24,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
@@ -33,7 +34,7 @@ public class UserService {
     @Value("${jwt.secret}")
     private String secretKey;
     private final String SERVER = "Server";
-    private final long COOKIE_EXPIRATION = 7776000; // 90일
+    private final long COOKIE_EXPIRATION = 7776000; //90일
     private final UsersRepository usersRepository;
     private final TermsRepository termsRepository;
     private final UserTermsRepository userTermsRepository;
@@ -149,6 +150,20 @@ public class UserService {
             signinRes.setLoginType(user.get().getLoginType());
 
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGIN_SUCCESS,tokenDto),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 로그아웃
+    @Transactional
+    public ResponseEntity logout(String accessToken){
+        try{
+            // 해당 Access Token 유효시간 가지고 와서 BlackList 로 저장하기
+            redisUtil.setBlackList(accessToken,"logout",jwtUtil.getRemainingTimeUntilExpiration(accessToken,secretKey));
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.LOGOUT_SUCCESS),HttpStatus.OK);
         }catch(Exception e){
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
@@ -275,22 +290,25 @@ public class UserService {
     }
 
 
-    // 회원탈퇴
-//    @Transactional
-//    public ResponseEntity deleteUser(String userEmail){
-//        try{
-//            Optional<Users> user = usersRepository.findByEmail(userEmail);
-//            if(!user.isPresent()){
-//                return new ResponseEntity(DefaultRes.res(StatusCode.UNAUTHORIZED, ResponseMessage.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
-//            }
-//            usersRepository.delete(user);
-//            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.DELETE_USER),HttpStatus.OK);
-//        }catch(Exception e){
-//            e.printStackTrace();
-//            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
-//                    HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+     // 회원탈퇴
+    @Transactional
+    public ResponseEntity WithdrawalUser(String accessToken,String userEmail){
+        try{
+            Optional<Users> user = usersRepository.findByEmail(userEmail);
+            if(!user.isPresent()){
+                return new ResponseEntity(DefaultRes.res(StatusCode.UNAUTHORIZED, ResponseMessage.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
+            }
+            usersRepository.delete(user.get());
+
+            // 해당 Access Token 유효시간 가지고 와서 BlackList 로 저장하기
+            redisUtil.setBlackList(accessToken,"logout",jwtUtil.getRemainingTimeUntilExpiration(accessToken,secretKey));
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.WITHDRAWAL_USER),HttpStatus.OK);
+        }catch(Exception e){
+            e.printStackTrace();
+            return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     // 카카오 로그인(카카오 유저 정보 받아오는거 까지의 기능)
     @Transactional
@@ -300,10 +318,12 @@ public class UserService {
 
         // 2. 토큰으로 카카오 API 호출
         SocialUserInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
+        System.out.println(kakaoUserInfo);
 
         //3. 이미 가입된 유저인지 아닌지 확인
         Users users = usersRepository.findByEmail(kakaoUserInfo.getEmail())
                 .orElse(null);
+        // 이미 가입된 경우
         if(users != null){
             if(users.getLoginType() != LoginType.KAKAO){ //카카오 유저가 아닌경우 에러처리
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,users.getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
@@ -321,9 +341,9 @@ public class UserService {
             response.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenDto.getAccessToken());
             response.setHeader(HttpHeaders.SET_COOKIE, httpCookie.toString());
 
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.KAKAO_LOGIN_SUCCESS,LoginType.KAKAO), HttpStatus.OK);
+            return new ResponseEntity(DefaultRes.res(StatusCode.OK, ResponseMessage.KAKAO_LOGIN_SUCCESS,tokenDto), HttpStatus.OK);
         }else{ // 회원가입 필요
-            return new ResponseEntity(DefaultRes.res(StatusCode.OK, "카카오 회원가입 필요",kakaoUserInfo), HttpStatus.OK);
+            return new ResponseEntity(DefaultRes.res(StatusCode.CREATED, "카카오 회원가입 필요",kakaoUserInfo), HttpStatus.CREATED);
         }
     }
 
@@ -339,7 +359,7 @@ public class UserService {
         MultiValueMap<String,String> params = new LinkedMultiValueMap<>();
         params.add("grant_type","authorization_code");
         params.add("client_id","19cc36f3dd9d3c88e8ab9d797fa5d79e");
-        params.add("redirect_uri","http://localhost:8080/auth/kakao/callback");
+        params.add("redirect_uri","https://main.dn2ba8ub4gfi8.amplifyapp.com/api/oauth/kakao/callback");
         params.add("code",code);
 
         // HttpHeader와 HttpBody를 하나의 오브젝트에 담기
@@ -357,6 +377,7 @@ public class UserService {
             String responseBody = response.getBody();
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode jsonNode = objectMapper.readTree(responseBody);
+            // System.out.println(jsonNode.get("access_token").asText());
             return jsonNode.get("access_token").asText();
 
         } catch (JsonProcessingException e) {
@@ -386,18 +407,21 @@ public class UserService {
                 kakaoUserInfoRequest,
                 String.class
         );
+        System.out.println(response);
 
         // responseBody에 있는 정보를 꺼냄
         String responseBody = response.getBody();
+        System.out.println(responseBody);
+
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonNode = objectMapper.readTree(responseBody);
 
         String email = jsonNode.get("kakao_account").get("email").asText();
-        String name = jsonNode.get("properties")
-                .get("nickname").asText();
-        String gender = jsonNode.get("kakao_account")
-                .get("gender").asText();
+        String gender = String.valueOf(jsonNode.get("kakao_account").get("gender"));
 
-        return new SocialUserInfoDto(email,name,gender);
+        System.out.println(email);
+        System.out.println(gender);
+
+        return new SocialUserInfoDto(email,gender);
     }
 }

@@ -26,7 +26,7 @@ public class UserTerms {
     @Column(name = "is_agree",nullable = false)
     private Boolean isAgree;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY,cascade = CascadeType.PERSIST)
     @JoinColumn(name = "user_id",nullable = false)
     private Users users;
 
