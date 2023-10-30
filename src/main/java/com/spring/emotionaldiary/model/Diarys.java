@@ -34,7 +34,7 @@ public class Diarys {
     // JPA의 Transient 애노테이션 : 엔티티 객체의 데이터와 테이블의 컬럼과 매핑하고 있는 관계 제외
     // 해당 데이터를 테이블의 컬럼과 매핑X
     @Transient
-    private final List<ImgRes> imgsList = new ArrayList<>();
+    private final List<ImgRes> images = new ArrayList<>();
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

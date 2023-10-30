@@ -21,7 +21,7 @@ public class DiarysDto {
 
     private String metaData;
 
-    private List<ImgRes> imgsList;
+    private List<ImgRes> images;
 
     private Long userID;
     private String userName;
@@ -34,7 +34,7 @@ public class DiarysDto {
         content = d.getContent();
         emotion = d.getEmotion();
         metaData = d.getMetaData();
-        imgsList = d.getImgsList();
+        images = d.getImages();
         userID = d.getUsers().getUserID();
         userName = d.getUsers().getName();
         commentID = d.getAiComments().getCommentID();

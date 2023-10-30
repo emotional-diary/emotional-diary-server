@@ -37,7 +37,7 @@ public class EmailService {
     private String setContext(String code) { // 타임리프 설정하는 코드
         Context context = new Context();
         context.setVariable("code", code); // Template에 전달할 데이터 설정
-        return templateEngine.process("mail", context); // mail.html
+        return templateEngine.process("email_authcode_form", context); // email_authcode_form.html
     }
 
     private String createCode() {

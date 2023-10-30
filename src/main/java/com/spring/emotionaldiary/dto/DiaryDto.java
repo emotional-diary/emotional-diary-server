@@ -24,5 +24,5 @@ public class DiaryDto {
 
     private String metaData;
 
-    private List<String> imageUrl;
+    private List<String> images;
 }

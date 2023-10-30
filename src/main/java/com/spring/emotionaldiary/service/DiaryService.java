@@ -69,7 +69,7 @@ public class DiaryService {
                                 .map(di -> new ImgRes(di))
                                 .collect(Collectors.toList());
                         DiarysDto dto = new DiarysDto(d);
-                        dto.setImgsList(imgResList);
+                        dto.setImages(imgResList);
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -99,7 +99,7 @@ public class DiaryService {
             System.out.println(diaryImgsList);
 
             diaryImgsList.forEach(di -> {
-                String imgUrl = di.getImgUrl();
+                String imgUrl = di.getImageUrl();
                 // s3 이미지의 key -> 'bucket/' 뒤의 값
                 String key = imgUrl.substring(imgUrl.indexOf(bucket) + bucket.length() + 1);
 
@@ -139,7 +139,7 @@ public class DiaryService {
             List<DiarysDto> diarysResList = diary.stream()
                     .map(d -> {
                         DiarysDto dto = new DiarysDto(d);
-                        dto.setImgsList(imgResList);
+                        dto.setImages(imgResList);
                         return dto;
                     })
                     .collect(Collectors.toList());
@@ -189,7 +189,7 @@ public class DiaryService {
                             ImgRes imgRes = new ImgRes(diaryImgs);
                             imgList.add(imgRes);
                         }
-                        diarysDto.setImgsList(imgList);
+                        diarysDto.setImages(imgList);
                     }
 
                     return new ResponseEntity(DefaultRes.res(StatusCode.OK, "일기 생성 성공",diarysDto), HttpStatus.OK);
@@ -259,7 +259,7 @@ public class DiaryService {
             if(updateDiaryDto.getDeleteImgIDList() != null){ // 삭제된 이미지가 존재하는 경우
                 updateDiaryDto.getDeleteImgIDList().forEach(imgID -> {
                     System.out.println(imgID);
-                    String imgUrl = diaryImgsRepository.findById(imgID).get().getImgUrl();
+                    String imgUrl = diaryImgsRepository.findById(imgID).get().getImageUrl();
                     // s3 이미지의 key -> 'bucket/' 뒤의 값
                     String key = imgUrl.substring(imgUrl.indexOf(bucket) + bucket.length() + 1);
 
@@ -291,7 +291,7 @@ public class DiaryService {
                 ImgRes imgRes = new ImgRes(di);
                 imgList.add(imgRes);
             });
-            diarysDto.setImgsList(imgList);
+            diarysDto.setImages(imgList);
 
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,ResponseMessage.UPDATE_DIARY,diarysDto),HttpStatus.OK);
         }catch(Exception e){
