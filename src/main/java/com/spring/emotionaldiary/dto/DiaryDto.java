@@ -23,4 +23,6 @@ public class DiaryDto {
     private Emotion emotion;
 
     private String metaData;
+
+    private List<String> imageUrl;
 }
