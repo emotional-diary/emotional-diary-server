@@ -19,8 +19,8 @@ public class DiaryImgs {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) //자동 시퀀스
-    @Column(name = "diary_img_id")
-    private Long diaryImgID;
+    @Column(name = "img_id")
+    private Long imageID;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diary_id",nullable = false)
@@ -28,7 +28,7 @@ public class DiaryImgs {
     private Diarys diarys;
 
     @Column(nullable = false)
-    private String imgUrl;
+    private String imageUrl;
 
     @CreationTimestamp
     @Column(name = "created_at",nullable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
@@ -38,8 +38,8 @@ public class DiaryImgs {
     @Column(name = "updated_at",nullable = false,columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Timestamp updatedAt;
 
-    public DiaryImgs(String imgUrl, Diarys diarys) {
-        this.imgUrl = imgUrl;
+    public DiaryImgs(String imageUrl, Diarys diarys) {
+        this.imageUrl = imageUrl;
         this.diarys = diarys;
     }
 }

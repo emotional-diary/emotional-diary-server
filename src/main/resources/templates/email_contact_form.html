@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org/" lang="ko">
+<body style="margin: 60px 0;">
+    <div style="margin-bottom: 20px; background-color: #94B49F;">
+        <img src="https://i.ibb.co/k9Vk1q6/logo.png" alt="원두잇" style="width: 160px;"/>
+    </div>
+<div style="border: 10px solid #f2f2f2; padding: 50px 20px;">
+    <div style="font-size: 40px; font-weight: 700; margin-bottom: 50px;">문의사항</div>
+    <div style="font-size: 14px; margin-bottom: 30px; line-height: 1.5; letter-spacing: -1px;">
+        유저명 : <span th:text="${name}" style="font-weight: 700;"></span><br/>
+        이메일 : <span th:text="${email}" style="font-weight: 700;"></span><br/>
+        User-Agent : <span th:text="${userAgent}" style="font-weight: 700;"></span>
+    </div>
+
+    <div style="font-size: 14px; margin-bottom: 8px;">문의내용 :</div>
+    <div th:text="${content}" style="border: 1px solid #eeeeee; padding: 30px 20px;font-size: 16px; font-weight: 700; background-color: #fbfbfb;">
+        <!--  -->
+        dasdasd
+    </div>
+
+    <div style="font-size: 14px; margin-top: 40px; line-height: 1.5; letter-spacing: -1px;">
+        오늘도 좋은 하루 되세요.
+    </div>
+</div>
+</body>
+</html>

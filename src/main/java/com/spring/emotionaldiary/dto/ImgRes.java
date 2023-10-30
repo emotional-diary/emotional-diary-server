@@ -9,7 +9,7 @@ public class ImgRes {
     private String imgUrl;
 
     public ImgRes(DiaryImgs di) {
-        diaryImgID = di.getDiaryImgID();
-        imgUrl = di.getImgUrl();
+        diaryImgID = di.getImageID();
+        imgUrl = di.getImageUrl();
     }
 }

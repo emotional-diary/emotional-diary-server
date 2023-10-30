@@ -11,5 +11,6 @@ public class updateDiaryDto {
     private Emotion emotion;
     private LocalDate diaryAt;
     private String metaData;
+    private List<String> images;
     private List<Long> deleteImgIDList;
 }

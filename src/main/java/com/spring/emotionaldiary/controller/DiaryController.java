@@ -64,8 +64,8 @@ public class DiaryController {
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재의 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
             }
             //s3에 이미지 저장
-            if(diaryDto.getImageUrl() != null){
-                List<String> imgPaths = s3Service.upload(diaryDto.getImageUrl());
+            if(diaryDto.getImages() != null){
+                List<String> imgPaths = s3Service.upload(diaryDto.getImages());
                 System.out.println("IMG 경로들 : " + imgPaths);
                 return diaryService.createDiary((String) authentication.getDetails(),diaryDto,imgPaths);
             }
@@ -78,8 +78,7 @@ public class DiaryController {
 
     // 내 일기 수정
     @PatchMapping("/diary/{diaryID}")
-    public ResponseEntity updateDiary(@Valid @RequestPart("diary") updateDiaryDto updateDiaryDto,
-                                      @RequestPart(value = "imgUrl",required = false) List<MultipartFile> multipartFiles,
+    public ResponseEntity updateDiary(@Valid @RequestBody updateDiaryDto updateDiaryDto,
                                       @PathVariable("diaryID") Long diaryID,Errors errors){
         try {
             if(errors.hasErrors()){
@@ -97,11 +96,11 @@ public class DiaryController {
                 return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재의 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
             }
             //s3에 이미지 저장
-//            if(multipartFiles != null){
-//                List<String> imgPaths = s3Service.upload(multipartFiles);
-//                System.out.println("IMG 경로들 : " + imgPaths);
-//                return diaryService.updateDiary(diaryID,updateDiaryDto,imgPaths);
-//            }
+            if(updateDiaryDto.getImages() != null){
+                List<String> imgPaths = s3Service.upload(updateDiaryDto.getImages());
+                System.out.println("IMG 경로들 : " + imgPaths);
+                return diaryService.updateDiary(diaryID,updateDiaryDto,imgPaths);
+            }
             // 이미지 없는경우 null로 전달
             return diaryService.updateDiary(diaryID,updateDiaryDto,null);
         } catch(Exception e){
