@@ -309,8 +309,8 @@ public class DiaryService {
         RestTemplate rt = new RestTemplate();
 
         ResponseEntity<AIComentRes> response = rt.exchange(
-                //"http://175.116.178.86:5000/api/model/predict",
-                 "http://127.0.0.1:8001/api/model/predict",
+                "http://175.116.178.86:5000/api/model/predict",
+                 //"http://127.0.0.1:8001/api/model/predict",
                 HttpMethod.POST,
                 requestEntity,
                 AIComentRes.class
