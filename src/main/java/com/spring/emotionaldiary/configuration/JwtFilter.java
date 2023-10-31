@@ -59,7 +59,7 @@ public class JwtFilter extends OncePerRequestFilter { //안보내는 요청에�
                 // 로그아웃 한 유저인지 아닌지 검사
                 if (redisUtil.hasKeyBlackList(accessToken)) {
                     // RuntimeException을 강제로 발생, 예외 처리
-                    throw new RuntimeException("로그아웃!");
+                    throw new RuntimeException("로그아웃");
                 }
                 String userName = jwtUtil.getUserName(accessToken, secretKey);
                 String userEmail = jwtUtil.getUserEmail(accessToken, secretKey);

@@ -38,7 +38,10 @@ public class AuthService {
     // AT가 만료일자만 초과한 유효한 토큰인지 검사
     public boolean validate(String requestAccessTokenInHeader) {
         String requestAccessToken = resolveToken(requestAccessTokenInHeader);
-        return jwtUtil.validateAccessTokenOnlyExpired(requestAccessToken); // true = 재발급
+        if(jwtUtil.validateAccessToken(requestAccessToken)){ //로그아웃했는 유저인지 확인
+            return jwtUtil.validateAccessTokenOnlyExpired(requestAccessToken); // true = 재발급
+        }
+        return false;
     }
 
     // 토큰 재발급: validate 메서드가 true 반환할 때만 사용 -> AT, RT 재발급

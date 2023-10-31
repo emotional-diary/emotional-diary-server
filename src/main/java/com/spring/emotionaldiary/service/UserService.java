@@ -146,9 +146,9 @@ public class UserService {
             }
             //jwt 생성 - user도 넣어서 만듦
             // accessToken, refreshToken 생성 -> accessToken은 Header에 바로 전달
-            // refreshToken은 redis에 저장 (key : userID, value: refreshToken, 2주동안)
             TokenDto tokenDto = authService.generateToken(SERVER,user.get());
-//            redisUtil.setDataExpire(String.valueOf(user.get().getUserID()),tokenDto.getRefreshToken(), 14L * 24L * 60L * 60L); // 2주
+            // refreshToken은 redis에 저장 (key : userID, value: refreshToken, 2주동안)
+            redisUtil.setDataExpire(String.valueOf(user.get().getEmail()),tokenDto.getRefreshToken(), 14L * 24L * 60L * 60L); // 2주
             // RT 저장
             HttpCookie httpCookie = ResponseCookie.from("refresh-token", tokenDto.getRefreshToken())
                     .maxAge(COOKIE_EXPIRATION)
