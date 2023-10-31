@@ -16,6 +16,7 @@ import com.spring.emotionaldiary.utils.JwtUtil;
 import com.spring.emotionaldiary.utils.RedisUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +24,10 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
-import javax.servlet.http.HttpServletRequest;
+import javax.mail.internet.MimeMessage;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
@@ -33,6 +36,10 @@ public class UserService {
 
     @Value("${jwt.secret}")
     private String secretKey;
+
+    @Value("${spring.mail.username}")
+    private String onedoitEmail;
+
     private final String SERVER = "Server";
     private final long COOKIE_EXPIRATION = 7776000; //90일
     private final UsersRepository usersRepository;
@@ -47,13 +54,18 @@ public class UserService {
     //스프링시큐리티 BCryptPasswordEncoder 기본 round = 10으로 설정되어 있음
     BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository, AuthService authService, RedisUtil redisUtil, JwtUtil jwtUtil) {
+    private final JavaMailSender emailSender;
+    private final SpringTemplateEngine templateEngine;
+
+    public UserService(UsersRepository usersRepository, TermsRepository termsRepository, UserTermsRepository userTermsRepository, AuthService authService, RedisUtil redisUtil, JwtUtil jwtUtil, JavaMailSender emailSender, SpringTemplateEngine templateEngine) {
         this.usersRepository = usersRepository;
         this.termsRepository = termsRepository;
         this.userTermsRepository = userTermsRepository;
         this.authService = authService;
         this.redisUtil = redisUtil;
         this.jwtUtil = jwtUtil;
+        this.emailSender = emailSender;
+        this.templateEngine = templateEngine;
     }
 
     @Transactional
@@ -310,6 +322,34 @@ public class UserService {
         }
     }
 
+
+    // 문의하기
+    @Transactional
+    public ResponseEntity sendEmailMessage(InquiryDto inquiryDto,String userName) throws Exception {
+        // System.out.println(redisUtil.existData(email));
+        MimeMessage message = createMessage(inquiryDto,userName);
+        emailSender.send(message);
+        return new ResponseEntity(DefaultRes.res(StatusCode.OK, "문의하기 성공"), HttpStatus.OK);
+    }
+
+    private MimeMessage createMessage(InquiryDto inquiryDto,String userName) throws Exception {
+
+        MimeMessage message = emailSender.createMimeMessage();
+        message.addRecipients(MimeMessage.RecipientType.TO, onedoitEmail); // 보낼 이메일 설정
+        message.setSubject("문의사항 요청 -" + inquiryDto.getEmail()); // 이메일 제목
+        message.setText(setContext(inquiryDto,userName), "utf-8", "html"); // 내용 설정(Template Process)
+        return message;
+    }
+
+    private String setContext(InquiryDto inquiryDto,String userName) { // 타임리프 설정하는 코드
+        Context context = new Context();
+        context.setVariable("name", userName); // Template에 전달할 데이터 설정
+        context.setVariable("email", inquiryDto.getEmail());
+        context.setVariable("content", inquiryDto.getContent());
+        context.setVariable("userAgent", "");
+        return templateEngine.process("email_contact_form", context);
+    }
+
     // 카카오 로그인(카카오 유저 정보 받아오는거 까지의 기능)
     @Transactional
     public ResponseEntity kakaoLoginService(String code,HttpServletResponse response) throws JsonProcessingException { //데이터를 리턴해주는 컨트롤러 함수(@ResponseBody)
@@ -424,4 +464,5 @@ public class UserService {
 
         return new SocialUserInfoDto(email,gender);
     }
+
 }
