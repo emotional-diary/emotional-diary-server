@@ -1,12 +1,14 @@
 package com.spring.emotionaldiary.dto;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 
 @Data
+@RequiredArgsConstructor
 public class EmailAuthenticationDto {
 
     @NotBlank(message = "이메일을 입력해주세요")

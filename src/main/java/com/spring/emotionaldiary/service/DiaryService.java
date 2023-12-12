@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -165,6 +166,14 @@ public class DiaryService {
 
             //1. front에서 받은 diaryDto.content를 AI에게 전달 및 answer 받아옴
             AIComentRes aiComentRes = AIEmotionalAnalysis(modelInfo);
+            System.out.println(aiComentRes);
+
+            // AIComment가 404에러 났을때
+            if(aiComentRes.getStatusCode() == 404){
+                return new ResponseEntity(DefaultRes.res(StatusCode.NOT_FOUND,"AI_NOT_FOUND"), HttpStatus.NOT_FOUND);
+            } else if (aiComentRes.getStatusCode() == 500) {
+                return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,"AI_INTERNAL_SERVER_ERROR"), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
 
             // AIComment가 성공적으로 전달되었을 때 200 뜸
             if(aiComentRes.getStatusCode() == 200){
@@ -228,6 +237,13 @@ public class DiaryService {
                 //1. front에서 받은 diaryDto.content를 AI에게 전달 및 answer 받아옴
                 AIComentRes aiComentRes = AIEmotionalAnalysis(modelInfo);
 
+                // AIComment가 404에러 났을때
+                if(aiComentRes.getStatusCode() == 404){
+                    return new ResponseEntity(DefaultRes.res(StatusCode.NOT_FOUND,"AI_NOT_FOUND"), HttpStatus.NOT_FOUND);
+                } else if (aiComentRes.getStatusCode() == 500) {
+                    return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,"AI_INTERNAL_SERVER_ERROR"), HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+
                 // AIComment가 성공적으로 전달되었을 때 200 뜸
                 if(aiComentRes.getStatusCode() == 200){
                     try {
@@ -255,9 +271,9 @@ public class DiaryService {
                 diary.get().setEmotion(updateDiaryDto.getEmotion());
             }
             // 삭제한 이미지가 있는 경우
-            System.out.println(updateDiaryDto.getDeleteImgIDList());
-            if(updateDiaryDto.getDeleteImgIDList() != null){ // 삭제된 이미지가 존재하는 경우
-                updateDiaryDto.getDeleteImgIDList().forEach(imgID -> {
+            System.out.println(updateDiaryDto.getDeleteImageIDList());
+            if(updateDiaryDto.getDeleteImageIDList() != null){ // 삭제된 이미지가 존재하는 경우
+                updateDiaryDto.getDeleteImageIDList().forEach(imgID -> {
                     System.out.println(imgID);
                     String imgUrl = diaryImgsRepository.findById(imgID).get().getImageUrl();
                     // s3 이미지의 key -> 'bucket/' 뒤의 값
@@ -308,14 +324,27 @@ public class DiaryService {
         HttpEntity<ModelInfo> requestEntity = new HttpEntity<>(modelInfo, headers);
         RestTemplate rt = new RestTemplate();
 
-        ResponseEntity<AIComentRes> response = rt.exchange(
-                "http://175.116.178.86:5000/api/model/predict",
-                 //"http://127.0.0.1:8001/api/model/predict",
-                HttpMethod.POST,
-                requestEntity,
-                AIComentRes.class
-        );
+        AIComentRes aiComentRes = new AIComentRes();
+        try{
+            ResponseEntity<AIComentRes> response = rt.exchange(
+                     "http://175.116.178.86:5000/api/model/predict",
+                    //"http://127.0.0.1:8001/api/model/predict",
+                    HttpMethod.POST,
+                    requestEntity,
+                    AIComentRes.class
+            );
 
-        return response.getBody();
+            return response.getBody();
+        }
+        catch (HttpClientErrorException e) { //404 에러
+            int statusCode = e.getRawStatusCode();
+            aiComentRes.setStatusCode(statusCode);
+            return aiComentRes;
+        }
+        catch(Exception e){ //500에러
+            e.printStackTrace();
+            aiComentRes.setStatusCode(500);
+            return aiComentRes;
+        }
     }
 }

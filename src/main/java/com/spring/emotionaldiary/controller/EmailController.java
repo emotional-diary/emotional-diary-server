@@ -29,6 +29,7 @@ public class EmailController {
     @Autowired
     private ValidateUtil validateUtil;
 
+    //이메일로 유저정보 조회
     @PostMapping("/email")
     public ResponseEntity findByEmail(@RequestBody EmailAuthenticationDto emailCodeReq) throws Exception{
         try{
@@ -38,6 +39,7 @@ public class EmailController {
         }
     }
 
+    // 이메일 유효성 인증
     @PostMapping("/email-validation")
     public ResponseEntity sendEmailPath(@Valid @RequestBody EmailAuthenticationDto emailCodeReq, Errors errors) throws Exception {
         try{

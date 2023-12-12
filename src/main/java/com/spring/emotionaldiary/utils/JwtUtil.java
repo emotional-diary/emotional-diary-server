@@ -18,7 +18,7 @@ public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String secretKey;
-    private static long accessTokenValidTime = Duration.ofMinutes(5).toMillis(); // 만료시간 5분
+    private static long accessTokenValidTime = Duration.ofDays(1).toMillis(); // 만료시간 1일
     private static long refreshTokenValidTime = Duration.ofDays(14).toMillis(); // 만료시간 2주
 
     private final RedisUtil redisUtil;

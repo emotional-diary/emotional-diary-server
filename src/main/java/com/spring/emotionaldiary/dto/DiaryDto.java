@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import javax.validation.constraints.*;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -18,8 +19,11 @@ public class DiaryDto {
     @NotBlank(message = "일기 내용을 입력해주세요")
     private String content;
 
+    @NotNull(message = "일기의 날짜를 입력해주세요")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) //2000-12-10
     private LocalDate diaryAt;
 
+    @NotNull(message = "감정을 선택해 주세요")
     private Emotion emotion;
 
     private String metaData;
