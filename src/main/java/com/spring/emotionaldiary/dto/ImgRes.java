@@ -5,11 +5,11 @@ import lombok.Getter;
 
 @Getter
 public class ImgRes {
-    private Long diaryImgID;
-    private String imgUrl;
+    private Long imageID;
+    private String imageUrl;
 
     public ImgRes(DiaryImgs di) {
-        diaryImgID = di.getImageID();
-        imgUrl = di.getImageUrl();
+        imageID = di.getImageID();
+        imageUrl = di.getImageUrl();
     }
 }

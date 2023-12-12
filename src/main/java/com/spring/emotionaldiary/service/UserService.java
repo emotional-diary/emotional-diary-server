@@ -301,7 +301,6 @@ public class UserService {
         }
     }
 
-
      // 회원탈퇴
     @Transactional
     public ResponseEntity WithdrawalUser(String accessToken,String userEmail){
@@ -322,18 +321,15 @@ public class UserService {
         }
     }
 
-
     // 문의하기
     @Transactional
     public ResponseEntity sendEmailMessage(InquiryDto inquiryDto,String userName) throws Exception {
-        // System.out.println(redisUtil.existData(email));
         MimeMessage message = createMessage(inquiryDto,userName);
         emailSender.send(message);
         return new ResponseEntity(DefaultRes.res(StatusCode.OK, "문의하기 성공"), HttpStatus.OK);
     }
 
     private MimeMessage createMessage(InquiryDto inquiryDto,String userName) throws Exception {
-
         MimeMessage message = emailSender.createMimeMessage();
         message.addRecipients(MimeMessage.RecipientType.TO, onedoitEmail); // 보낼 이메일 설정
         message.setSubject("문의사항 요청 -" + inquiryDto.getEmail()); // 이메일 제목
@@ -346,7 +342,7 @@ public class UserService {
         context.setVariable("name", userName); // Template에 전달할 데이터 설정
         context.setVariable("email", inquiryDto.getEmail());
         context.setVariable("content", inquiryDto.getContent());
-        context.setVariable("userAgent", "");
+        context.setVariable("userAgent", inquiryDto.getUserAgent());
         return templateEngine.process("email_contact_form", context);
     }
 
