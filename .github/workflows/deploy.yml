@@ -59,7 +59,7 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: OneDoIT
+          application_name: oneDoIT
           environment_name: OneDoIT-env
           version_label: "github-action--${{ steps.format-time.outputs.replaced }}"
           region: ap-northeast-2
