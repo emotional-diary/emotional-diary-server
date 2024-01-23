@@ -15,6 +15,7 @@ import com.spring.emotionaldiary.repository.DiarysRepository;
 import com.spring.emotionaldiary.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
@@ -168,49 +169,55 @@ public class DiaryService {
             AIComentRes aiComentRes = AIEmotionalAnalysis(modelInfo);
             System.out.println(aiComentRes);
 
-            // AIComment가 404에러 났을때
-            if(aiComentRes.getStatusCode() == 404){
-                return new ResponseEntity(DefaultRes.res(StatusCode.NOT_FOUND,"AI_NOT_FOUND"), HttpStatus.NOT_FOUND);
-            } else if (aiComentRes.getStatusCode() == 500) {
-                return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,"AI_INTERNAL_SERVER_ERROR"), HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
             // AIComment가 성공적으로 전달되었을 때 200 뜸
-            if(aiComentRes.getStatusCode() == 200){
-                try {
+            try {
+                AIComments saveAIComments = null;
+                if(aiComentRes.getStatusCode() == 200) {
+
                     // 2. answer값 ai_comments 테이블에 저장
                     AIComments aiComments = aiComentRes.toAIComments();
-                    AIComments saveAIComments = aiCommentsRepository.save(aiComments);
+                    saveAIComments = aiCommentsRepository.save(aiComments);
 
-                    // 3. commentID와 함께 diary 테이블에 저장
-                    SaveDiarysDto saveDiarysDto = new SaveDiarysDto(diaryDto.getContent(),diaryDto.getEmotion(),diaryDto.getMetaData(),user,saveAIComments,diaryDto.getDiaryAt());
-                    Diarys diarys = saveDiarysDto.toDiarys();
-                    diarysRepository.save(diarys);
 
-                    DiarysDto diarysDto = new DiarysDto(diarys);
+                }else{ // 일기 생성 에러나는 경우 -> commentID, comment 직접 박아서 넣기
 
-                    // 4.DiaryImgs 테이블에 s3에 저장된 이미지 리스트 저장
-                    if(imgPaths != null){
-                        List<ImgRes> imgList = new ArrayList<>();
-                        for (String imgUrl : imgPaths){
-                            DiaryImgs diaryImgs = new DiaryImgs(imgUrl,diarys);
-                            diaryImgsRepository.save(diaryImgs);
-                            ImgRes imgRes = new ImgRes(diaryImgs);
-                            imgList.add(imgRes);
-                        }
-                        diarysDto.setImages(imgList);
-                    }
+                    // 2. answer값 ai_comments 테이블에 저장
+                    AIComments aiComments = new AIComments();
+                    aiComments.setComment("AI 분석에 실패했어요.");
+                    saveAIComments = aiCommentsRepository.save(aiComments);
 
-                    return new ResponseEntity(DefaultRes.res(StatusCode.OK, "일기 생성 성공",diarysDto), HttpStatus.OK);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+                    // AI 생성 실패 -> metaData의 isFailedLoadComment: true;
+                    JSONObject metaDataObject = new JSONObject();
+                    metaDataObject.put("isFailedLoadComment", true);
+                    String updatedMetaDataString = metaDataObject.toString();
+                    diaryDto.setMetaData(updatedMetaDataString);
                 }
-            }else{
-                // 다른 statusCode return response 코드 구현
+
+                // 3. commentID와 함께 diary 테이블에 저장
+                SaveDiarysDto saveDiarysDto = new SaveDiarysDto(diaryDto.getContent(),diaryDto.getEmotion(),diaryDto.getMetaData(),user,saveAIComments,diaryDto.getDiaryAt());
+
+                Diarys diarys = saveDiarysDto.toDiarys();
+                diarysRepository.save(diarys);
+
+                DiarysDto diarysDto = new DiarysDto(diarys);
+
+                // 4.DiaryImgs 테이블에 s3에 저장된 이미지 리스트 저장
+                if(imgPaths != null){
+                    List<ImgRes> imgList = new ArrayList<>();
+                    for (String imgUrl : imgPaths){
+                        DiaryImgs diaryImgs = new DiaryImgs(imgUrl,diarys);
+                        diaryImgsRepository.save(diaryImgs);
+                        ImgRes imgRes = new ImgRes(diaryImgs);
+                        imgList.add(imgRes);
+                    }
+                    diarysDto.setImages(imgList);
+                }
+
+                return new ResponseEntity(DefaultRes.res(StatusCode.OK, "일기 생성 성공",diarysDto), HttpStatus.OK);
+            } catch (Exception e) {
+                e.printStackTrace();
                 return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
             }
-
         }catch (Exception e){
             e.printStackTrace();
             return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
