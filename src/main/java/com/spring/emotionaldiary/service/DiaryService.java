@@ -225,53 +225,15 @@ public class DiaryService {
             if(!diary.isPresent()){
                 return new ResponseEntity(DefaultRes.res(StatusCode.NOT_FOUND, ResponseMessage.READ_DIARYS_FAIL), HttpStatus.NOT_FOUND);
             }
-            System.out.println(updateDiaryDto.getContent());
-            // content를 수정한 경우
-            if(updateDiaryDto.getContent() != null){
-                // 일기 content 수정
-                diary.get().setContent(updateDiaryDto.getContent());
-
-                ModelInfo modelInfo = new ModelInfo();
-                modelInfo.setText(updateDiaryDto.getContent());
-
-                //1. front에서 받은 diaryDto.content를 AI에게 전달 및 answer 받아옴
-                AIComentRes aiComentRes = AIEmotionalAnalysis(modelInfo);
-
-                // AIComment가 404에러 났을때
-                if(aiComentRes.getStatusCode() == 404){
-                    return new ResponseEntity(DefaultRes.res(StatusCode.NOT_FOUND,"AI_NOT_FOUND"), HttpStatus.NOT_FOUND);
-                } else if (aiComentRes.getStatusCode() == 500) {
-                    return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR,"AI_INTERNAL_SERVER_ERROR"), HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-
-                // AIComment가 성공적으로 전달되었을 때 200 뜸
-                if(aiComentRes.getStatusCode() == 200){
-                    try {
-                        // 2. answer값 ai_comments 테이블에 저장
-                        AIComments aiComments = aiComentRes.toAIComments();
-                        AIComments saveAIComments = aiCommentsRepository.save(aiComments);
-
-                        // 3. diarys 테이블의 ComentID 변경
-                        diary.get().setAiComments(saveAIComments);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
-                    }
-                }else{
-                    // 다른 statusCode return response 코드 구현
-                    return new ResponseEntity(DefaultRes.res(StatusCode.INTERNAL_SERVER_ERROR, ResponseMessage.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
-                }
-            }
+            // 일기 content 수정
+            diary.get().setContent(updateDiaryDto.getContent());
             // 일기 날짜 수정의 경우
-            if (updateDiaryDto.getDiaryAt() != null) {
-                diary.get().setDiaryAt(updateDiaryDto.getDiaryAt());
-            }
+            diary.get().setDiaryAt(updateDiaryDto.getDiaryAt());
             // 감정 수정 경우
-            if (updateDiaryDto.getEmotion() != null) {
-                diary.get().setEmotion(updateDiaryDto.getEmotion());
-            }
+            diary.get().setEmotion(updateDiaryDto.getEmotion());
+
             // 삭제한 이미지가 있는 경우
-            System.out.println(updateDiaryDto.getDeleteImageIDList());
+            // System.out.println(updateDiaryDto.getDeleteImageIDList());
             if(updateDiaryDto.getDeleteImageIDList() != null){ // 삭제된 이미지가 존재하는 경우
                 updateDiaryDto.getDeleteImageIDList().forEach(imgID -> {
                     System.out.println(imgID);

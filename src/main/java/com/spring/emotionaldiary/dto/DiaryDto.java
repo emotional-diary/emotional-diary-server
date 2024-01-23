@@ -16,10 +16,10 @@ import java.util.List;
 @RequiredArgsConstructor //final이 붙거나 @NotNull이 붙은 필드의 생성자를 자동 생성해주는 롬복 어노테이션
 public class DiaryDto {
 
-    @NotBlank(message = "일기 내용을 입력해주세요")
+    @NotBlank(message = "내용을 입력해주세요")
     private String content;
 
-    @NotNull(message = "일기의 날짜를 입력해주세요")
+    @NotNull(message = "날짜를 입력해주세요")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) //2000-12-10
     private LocalDate diaryAt;
 

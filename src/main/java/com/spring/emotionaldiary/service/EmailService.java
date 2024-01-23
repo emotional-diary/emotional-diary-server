@@ -80,7 +80,7 @@ public class EmailService {
             Optional<Users> user = usersRepository.findByEmail(email);
             // user가 있는데 loginType이 USER가 아니면 에러처리
             if(user.isPresent() && user.get().getLoginType()!= LoginType.LOCAL){
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,user.get().getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,user.get().getLoginType()+" 계정으로 가입했습니다."),HttpStatus.BAD_REQUEST);
             }
             return new ResponseEntity(DefaultRes.res(StatusCode.OK,"이메일로 유저 정보 조회 성공",user),HttpStatus.OK);
         }catch(Exception e){

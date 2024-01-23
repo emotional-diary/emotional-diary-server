@@ -62,7 +62,7 @@ public class DiaryController {
             }
             System.out.println(ChronoLocalDate.from(LocalDateTime.now(ZoneId.of("Asia/Seoul"))));
             if(diaryDto.getDiaryAt().isAfter(ChronoLocalDate.from(LocalDateTime.now(ZoneId.of("Asia/Seoul"))))){
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재의 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
             }
             //s3에 이미지 저장
             if(diaryDto.getImages() != null){
@@ -94,7 +94,7 @@ public class DiaryController {
             }
             // System.out.println(ChronoLocalDate.from(LocalDateTime.now(ZoneId.of("Asia/Seoul"))));
             if(updateDiaryDto.getDiaryAt().isAfter(ChronoLocalDate.from(LocalDateTime.now(ZoneId.of("Asia/Seoul"))))){
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재의 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST, "과거와 현재 일기만 작성이 가능합니다."), HttpStatus.BAD_REQUEST);
             }
             //s3에 이미지 저장
             if(updateDiaryDto.getImages() != null){
