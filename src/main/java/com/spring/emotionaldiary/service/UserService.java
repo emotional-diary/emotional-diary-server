@@ -189,7 +189,7 @@ public class UserService {
             Optional<Users> user = usersRepository.findByEmail(PasswordDto.getEmail());
             // 이메일 존재하지 않는경우 에러처리
             if(!user.isPresent()){
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"해당 유저가 존재하지 않습니다."),HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"해당 회원이 존재하지 않습니다."),HttpStatus.BAD_REQUEST);
             }
             // 1. 새로운 비밀번호(bcrypt 암호화)가 이전의 비밀번호와 일치하지 않는지 확인
             DefaultRes<Boolean> responseBody = (DefaultRes<Boolean>) verifyPwd(user.get().getEmail(),PasswordDto.getNewPassword()).getBody();
@@ -265,7 +265,7 @@ public class UserService {
             DefaultRes<Boolean> responseBody = (DefaultRes<Boolean>) verifyPwd(userEmail,newPassword).getBody();
             Boolean data = responseBody.getData();
             if(data){
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전의 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이전 비밀번호와 일치합니다."),HttpStatus.BAD_REQUEST);
             }
             // 3. 새로운 비밀번호 저장
             // Spring Data Jpa 는 기본적으로 JPA 영속성 컨텍스트 유지를 제공한다.
@@ -362,7 +362,7 @@ public class UserService {
         // 이미 가입된 경우
         if(users != null){
             if(users.getLoginType() != LoginType.KAKAO){ //카카오 유저가 아닌경우 에러처리
-                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,users.getLoginType()+"로 가입된 유저입니다."),HttpStatus.BAD_REQUEST);
+                return new ResponseEntity(DefaultRes.res(StatusCode.BAD_REQUEST,"이메일 계정으로 가입했습니다."),HttpStatus.BAD_REQUEST);
             }
             //jwt 생성 - jwt에 userName,userID 넣어서 생성
             TokenDto tokenDto = authService.generateToken(SERVER,users);
@@ -395,7 +395,7 @@ public class UserService {
         MultiValueMap<String,String> params = new LinkedMultiValueMap<>();
         params.add("grant_type","authorization_code");
         params.add("client_id","19cc36f3dd9d3c88e8ab9d797fa5d79e");
-        params.add("redirect_uri","https://main.dn2ba8ub4gfi8.amplifyapp.com/api/oauth/kakao/callback");
+        params.add("redirect_uri","https://www.onedoit.site/api/oauth/kakao/callback");
         params.add("code",code);
 
         // HttpHeader와 HttpBody를 하나의 오브젝트에 담기

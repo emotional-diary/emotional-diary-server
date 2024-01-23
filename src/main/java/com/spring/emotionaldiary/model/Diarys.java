@@ -40,7 +40,7 @@ public class Diarys {
     @Enumerated(EnumType.STRING)
     private Emotion emotion;
 
-    @Column(columnDefinition = "TEXT",name = "meta_data")
+    @Column(columnDefinition = "TEXT",name = "meta_datㄴ")
     private String metaData;
 
     // fetch 종류 : EAGER, LAZY
